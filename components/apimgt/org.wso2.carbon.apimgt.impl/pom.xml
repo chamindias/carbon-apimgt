@@ -327,6 +327,11 @@
             <artifactId>commons-collections4</artifactId>
             <version>${commons.collections4.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.stripe</groupId>
+            <artifactId>stripe-java</artifactId>
+            <version>${stripe.version}</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

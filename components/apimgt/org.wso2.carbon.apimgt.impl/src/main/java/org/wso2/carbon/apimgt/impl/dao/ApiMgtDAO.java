@@ -12482,6 +12482,204 @@ public class ApiMgtDAO {
     }
 
     /**
+     * This method is used to add monetization data to the DB
+     *
+     * @param apiId       API ID
+     * @param productId   stripe product ID
+     * @param tierPlanMap stripe plan and tier mapping
+     * @throws APIManagementException if failed to add monetization data to the DB
+     */
+    public void addMonetizationData(String apiId, String productId, Map<String, String> tierPlanMap)
+            throws APIManagementException {
+
+        PreparedStatement preparedStatement = null;
+        Connection connection = null;
+        try {
+            if (!tierPlanMap.isEmpty()) {
+                connection = APIMgtDBUtil.getConnection();
+                preparedStatement = connection.prepareStatement(SQLConstants.ADD_MONETIZATION_DATA_SQL);
+                initialAutoCommit = connection.getAutoCommit();
+                connection.setAutoCommit(false);
+                for (Map.Entry<String, String> entry : tierPlanMap.entrySet()) {
+                    preparedStatement.setString(1, apiId);
+                    preparedStatement.setString(2, productId);
+                    preparedStatement.setString(3, entry.getKey());
+                    preparedStatement.setString(4, entry.getValue());
+                    preparedStatement.addBatch();
+                }
+                preparedStatement.executeBatch();
+            }
+        } catch (SQLException e) {
+            try {
+                if (connection != null) {
+                    connection.rollback();
+                }
+            } catch (SQLException ex) {
+                handleException("Failed to add monetization data for API : " + apiId, ex);
+            } finally {
+                APIMgtDBUtil.setAutoCommit(connection, initialAutoCommit);
+            }
+        } finally {
+            APIMgtDBUtil.closeAllConnections(preparedStatement, connection, null);
+        }
+    }
+
+    /**
+     * This method is used to get stripe plan and tier mapping
+     *
+     * @param apiID           API ID
+     * @param stripeProductId stripe product ID
+     * @return mapping between tier and stripe plans
+     */
+    public Map<String, String> getStripePlanMap(String apiID, String stripeProductId) throws APIManagementException {
+
+        Map<String, String> stripePlanTierMap = new HashMap<String, String>();
+        Connection connection = null;
+        PreparedStatement statement = null;
+        try {
+            connection = APIMgtDBUtil.getConnection();
+            statement = connection.prepareStatement(SQLConstants.GET_PLANS_BY_API_STRIPE_PRODUCT);
+            statement.setString(1, apiID);
+            statement.setString(2, stripeProductId);
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                String tierName = rs.getString("TIER_NAME");
+                String stripePlanId = rs.getString("STRIPE_PLAN_ID");
+                stripePlanTierMap.put(tierName, stripePlanId);
+            }
+            connection.commit();
+        } catch (SQLException e) {
+            handleException("Failed to get stripe plan and tier mapping for API : " + apiID, e);
+        } finally {
+            APIMgtDBUtil.closeAllConnections(statement, connection, null);
+        }
+        return stripePlanTierMap;
+    }
+
+
+    /**
+     * This method is used to fetch the API ID in AM_API table
+     *
+     * @param apiName     API name
+     * @param apiVersion  API version
+     * @param apiProvider API provider
+     * @return API ID in AM_API table
+     */
+    public String getApiId(String apiName, String apiVersion, String apiProvider) throws APIManagementException {
+
+        String apiId = null;
+        Connection connection = null;
+        PreparedStatement statement = null;
+        try {
+            connection = APIMgtDBUtil.getConnection();
+            statement = connection.prepareStatement(SQLConstants.GET_API_ID_BY_IDENTIFIER);
+            statement.setString(1, apiName);
+            statement.setString(2, apiVersion);
+            statement.setString(3, apiProvider);
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                apiId = rs.getString("API_ID");
+            }
+            connection.commit();
+        } catch (SQLException e) {
+            handleException("Failed to get API ID of API : " + apiName, e);
+        } finally {
+            APIMgtDBUtil.closeAllConnections(statement, connection, null);
+        }
+        return apiId;
+    }
+
+    /**
+     * This method is used to get the stripe product ID for a give API
+     *
+     * @param apiId API ID
+     * @return stripe product ID of the give API
+     */
+    public String getStripeProductId(String apiId) throws APIManagementException {
+
+        String stripeProductId = null;
+        Connection connection = null;
+        PreparedStatement statement = null;
+        try {
+            connection = APIMgtDBUtil.getConnection();
+            statement = connection.prepareStatement(SQLConstants.GET_STRIPE_PRODUCT_BY_API);
+            statement.setString(1, apiId);
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                stripeProductId = rs.getString("STRIPE_PRODUCT_ID");
+            }
+            connection.commit();
+        } catch (SQLException e) {
+            handleException("Failed to get stripe product ID of API : " + apiId, e);
+        } finally {
+            APIMgtDBUtil.closeAllConnections(statement, connection, null);
+        }
+        return stripeProductId;
+    }
+
+    /**
+     * This method is used to get stripe plan ID list for a given API
+     *
+     * @param apiId API ID
+     * @return stripe plan ID list for the given API
+     */
+    public List<String> getStripePlanIdListOfApi(String apiId) throws APIManagementException {
+
+        List<String> stripePlanIdList = new ArrayList<String>();
+        Connection connection = null;
+        PreparedStatement statement = null;
+        try {
+            connection = APIMgtDBUtil.getConnection();
+            statement = connection.prepareStatement(SQLConstants.GET_STRIPE_PLANS_BY_API);
+            statement.setString(1, apiId);
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                stripePlanIdList.add(rs.getString("STRIPE_PLAN_ID"));
+            }
+            connection.commit();
+        } catch (SQLException e) {
+
+            handleException("Failed to get stripe plan ID list of API : " + apiId, e);
+        } finally {
+            APIMgtDBUtil.closeAllConnections(statement, connection, null);
+        }
+        return stripePlanIdList;
+    }
+
+    /**
+     * This method deletes monetization data for a given API from the DB
+     *
+     * @param apiId API ID
+     * @throws APIManagementException if failed to delete monetization data
+     */
+    public void deleteMonetizationData(String apiId) throws APIManagementException {
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+        try {
+            connection = APIMgtDBUtil.getConnection();
+            statement = connection.prepareStatement(SQLConstants.DELETE_MONETIZATION_DATA_SQL);
+            initialAutoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            statement.setString(1, apiId);
+            statement.executeUpdate();
+            connection.commit();
+        } catch (SQLException e) {
+            try {
+                if (connection != null) {
+                    connection.rollback();
+                }
+            } catch (SQLException ex) {
+                handleException("Failed to delete monetization data for API : " + apiId, ex);
+            } finally {
+                APIMgtDBUtil.setAutoCommit(connection, initialAutoCommit);
+            }
+        } finally {
+            APIMgtDBUtil.closeAllConnections(statement, connection, null);
+        }
+    }
+
+    /**
      * Insert URL to the URL table
      *
      * @param uuid    label id.

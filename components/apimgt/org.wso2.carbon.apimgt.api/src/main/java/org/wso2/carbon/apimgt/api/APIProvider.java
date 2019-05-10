@@ -679,7 +679,15 @@ public interface APIProvider extends APIManager {
      * @param updatedStatus status of the stat publishing state
      */
     void callStatUpdateService(String receiverUrl, String user, String password, boolean updatedStatus);
-    
+
+    /**
+     * This method is used to configure monetization for a given API
+     *
+     * @param api API to be updated with monetization
+     * @throws APIManagementException if it failed to update the monetization status and data
+     */
+    void configureMonetization(API api) throws APIManagementException;
+
     /**
      * This method is to change registry lifecycle states for an API artifact
      *

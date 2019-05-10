@@ -1166,6 +1166,50 @@ class APIProviderImpl extends AbstractAPIManager implements APIProvider {
         updateAPI(api);
     }
 
+    @Override
+    public void configureMonetization(API api) throws APIManagementException {
+
+        boolean transactionCommitted = false;
+        try {
+            registry.beginTransaction();
+            String apiArtifactId = registry.get(APIUtil.getAPIPath(api.getId())).getUUID();
+            GenericArtifactManager artifactManager = APIUtil.getArtifactManager(registry, APIConstants.API_KEY);
+            if (artifactManager == null) {
+                handleException("Artifact manager is null when updating monetization data for API ID " + api.getId());
+            }
+            GenericArtifact artifact = artifactManager.getGenericArtifact(apiArtifactId);
+            //set monetization status (i.e - enabled or disabled)
+            artifact.setAttribute(APIConstants.API_MONETIZATION_STATUS,
+                    Boolean.toString(api.getMonetizationStatus()));
+            //clear existing monetization properties
+            artifact.removeAttribute(APIConstants.API_MONETIZATION_PROPERTIES);
+            //set new additional monetization data
+            if (api.getMonetizationProperties() != null) {
+                artifact.setAttribute(APIConstants.API_MONETIZATION_PROPERTIES,
+                        api.getMonetizationProperties().toJSONString());
+            }
+            artifactManager.updateGenericArtifact(artifact);
+            registry.commitTransaction();
+            transactionCommitted = true;
+        } catch (Exception e) {
+            try {
+                registry.rollbackTransaction();
+            } catch (RegistryException re) {
+                handleException("Error while rolling back the transaction (monetization status update) for API: " +
+                        api.getId().getApiName(), re);
+            }
+            handleException("Error while performing registry transaction (monetization status update) operation", e);
+        } finally {
+            try {
+                if (!transactionCommitted) {
+                    registry.rollbackTransaction();
+                }
+            } catch (RegistryException e) {
+                handleException("Error occurred while rolling back the transaction (monetization status update).", e);
+            }
+        }
+    }
+
     private void updateApiArtifact(API api, boolean updateMetadata, boolean updatePermissions)
             throws APIManagementException {
 

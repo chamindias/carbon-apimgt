@@ -301,6 +301,13 @@ public final class APIConstants {
     public static final String PROVIDER_OVERVIEW_EMAIL = "overview_email";
     public static final String PROVIDER_OVERVIEW_DESCRIPTION = "overview_description";
 
+    //Constants related to monetization of the API
+    public static final String API_MONETIZATION_STATUS = "isMonetizationEnabled";
+    public static final String API_MONETIZATION_PROPERTIES = "monetizationProperties";
+    public static final String MONETIZATION_INFO = "MonetizationInfo";
+    public static final String PLATFORM_ACCOUNT_STRIPE_KEY = "PlatformAccountStripeKey";
+    public static final String CONNECTED_ACCOUNT_STRIPE_KEY = "ConnectedAccountStripeKey";
+
     public static final String API_LABELS_GATEWAY_LABELS = "labels_labelName";
     public static final String LABEL_NAME = "labelName";
     public static final String LABEL_DESCRIPTION = "labelDescription";

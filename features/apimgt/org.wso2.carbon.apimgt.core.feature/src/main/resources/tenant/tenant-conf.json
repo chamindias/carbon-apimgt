@@ -97,5 +97,8 @@
     "SubscriberRole" : {
       "CreateOnTenantLoad" : true
     }
+  },
+  "MonetizationInfo": {
+    "PlatformAccountStripeKey": "sk_test_QEGKUR7yt83Bc0RdAme0bZPL00hnxaNCE7"
   }
 }

@@ -3962,6 +3962,24 @@ definitions:
         example: /apis/01234567-0123-0123-0123-012345678901/thumbnail
 
   #-----------------------------------------------------
+  # The API monetization resource
+  #-----------------------------------------------------
+  APIMonetizationInfo:
+    title: API monetization object
+    required:
+      - enabled
+    properties:
+      enabled:
+        type: boolean
+        description: Flag to indicate the monetization status
+        example: true
+      properties:
+        type: object
+        description: Map of custom properties related to monetization
+        additionalProperties:
+          type: string
+
+  #-----------------------------------------------------
   # The Detailed API resource
   #-----------------------------------------------------
   APIDetailed:
@@ -4110,6 +4128,8 @@ definitions:
             additionalProperties:
               type: string
             description : Map of custom properties of API
+          monetization:
+            $ref: '#/definitions/APIMonetizationInfo'
           accessControl:
             type: string
             description: |

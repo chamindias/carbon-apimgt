@@ -2879,6 +2879,19 @@ public class SQLConstants {
 
     public static final String UPDATE_LABEL_SQL = "UPDATE AM_LABELS SET NAME = ?, DESCRIPTION = ?  WHERE LABEL_ID = ?";
 
+    /** Monetization related constants **/
+    public static final String ADD_MONETIZATION_DATA_SQL = "INSERT INTO AM_MONETIZATION VALUES (?,?,?,?)";
+
+    public static final String DELETE_MONETIZATION_DATA_SQL = "DELETE FROM AM_MONETIZATION WHERE API_ID = ?";
+
+    public static final String GET_STRIPE_PRODUCT_BY_API = "SELECT STRIPE_PRODUCT_ID FROM AM_MONETIZATION WHERE API_ID = ? ";
+
+    public static final String GET_STRIPE_PLANS_BY_API = "SELECT STRIPE_PLAN_ID FROM AM_MONETIZATION WHERE API_ID = ? ";
+
+    public static final String GET_API_ID_BY_IDENTIFIER = "SELECT API_ID FROM AM_API WHERE API_NAME = ? AND API_VERSION = ? AND API_PROVIDER = ?";
+
+    public static final String GET_PLANS_BY_API_STRIPE_PRODUCT = "SELECT TIER_NAME, STRIPE_PLAN_ID FROM AM_MONETIZATION WHERE API_ID = ? AND STRIPE_PRODUCT_ID = ?";
+
     /** Throttle related constants**/
 
     public static class ThrottleSQLConstants{
