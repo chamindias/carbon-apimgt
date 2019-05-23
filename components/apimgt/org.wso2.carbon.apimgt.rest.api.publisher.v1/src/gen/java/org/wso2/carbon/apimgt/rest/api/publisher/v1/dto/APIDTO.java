@@ -9,6 +9,7 @@ import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.APICorsConfigurationDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.APIEndpointDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.APIEndpointSecurityDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.APIMaxTpsDTO;
+import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.APIMonetizationInfoDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.APIOperationsDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.APIThreatProtectionPoliciesDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.LabelDTO;
@@ -126,6 +127,9 @@ public class APIDTO  {
   
   
   private Map<String, String> additionalProperties = new HashMap<String, String>();
+  
+  
+  private APIMonetizationInfoDTO monetization = null;
   
   public enum AccessControlEnum {
      NONE,  RESTRICTED, 
@@ -539,6 +543,18 @@ public class APIDTO  {
 
   
   /**
+   **/
+  @ApiModelProperty(value = "")
+  @JsonProperty("monetization")
+  public APIMonetizationInfoDTO getMonetization() {
+    return monetization;
+  }
+  public void setMonetization(APIMonetizationInfoDTO monetization) {
+    this.monetization = monetization;
+  }
+
+  
+  /**
    * Is the API is restricted to certain set of publishers or creators or is it visible to all the\npublishers and creators. If the accessControl restriction is none, this API can be modified by all the\npublishers and creators, if not it can only be viewable/modifiable by certain set of publishers and creators,\n based on the restriction.\n
    **/
   @ApiModelProperty(value = "Is the API is restricted to certain set of publishers or creators or is it visible to all the\npublishers and creators. If the accessControl restriction is none, this API can be modified by all the\npublishers and creators, if not it can only be viewable/modifiable by certain set of publishers and creators,\n based on the restriction.\n")
@@ -708,6 +724,7 @@ public class APIDTO  {
     sb.append("  subscriptionAvailability: ").append(subscriptionAvailability).append("\n");
     sb.append("  subscriptionAvailableTenants: ").append(subscriptionAvailableTenants).append("\n");
     sb.append("  additionalProperties: ").append(additionalProperties).append("\n");
+    sb.append("  monetization: ").append(monetization).append("\n");
     sb.append("  accessControl: ").append(accessControl).append("\n");
     sb.append("  accessControlRoles: ").append(accessControlRoles).append("\n");
     sb.append("  businessInformation: ").append(businessInformation).append("\n");

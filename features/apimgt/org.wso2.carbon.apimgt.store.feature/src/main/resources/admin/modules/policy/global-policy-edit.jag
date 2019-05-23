@@ -21,6 +21,11 @@ var saveGlobalPolicy = function (action, policyName, description, siddhiQuery, k
             error: false
         };
     }catch (ex) {
+
+        log.info("444444444");
+
+
+
         var errorMessage = i18n.localize("Error occurred while saving policy (Cause:")+ ex.message + ")";
         log.error(errorMessage);
 

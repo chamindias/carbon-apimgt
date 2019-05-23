@@ -12,6 +12,7 @@ import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.LifecycleHistoryDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.LifecycleStateDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.MediationListDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.MediationDTO;
+import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.APIMonetizationInfoDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.ResourcePolicyListDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.ResourcePolicyInfoDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.ScopeListDTO;
@@ -46,6 +47,7 @@ public abstract class ApisApiService {
     public abstract Response apisApiIdMediationPoliciesMediationPolicyIdGet(String apiId,String mediationPolicyId,String ifNoneMatch);
     public abstract Response apisApiIdMediationPoliciesMediationPolicyIdPut(String apiId,String mediationPolicyId,MediationDTO body,String ifMatch);
     public abstract Response apisApiIdMediationPoliciesPost(MediationDTO body,String apiId,String ifMatch);
+    public abstract Response apisApiIdMonetizePost(String apiId,APIMonetizationInfoDTO body);
     public abstract Response apisApiIdPut(String apiId,APIDTO body,String ifMatch);
     public abstract Response apisApiIdResourcePoliciesGet(String apiId,String sequenceType,String resourcePath,String verb,String ifNoneMatch);
     public abstract Response apisApiIdResourcePoliciesResourcePolicyIdGet(String apiId,String resourcePolicyId,String ifNoneMatch);

@@ -19,6 +19,9 @@ var addApiPolicy = function (policy) {
             error: false
         };
     } catch (ex) {
+
+log.info("222222222");
+
         var errorMessage = "Error occurred while saving policy (Cause:" + ex.message + ")";
         log.error(errorMessage);
         return {

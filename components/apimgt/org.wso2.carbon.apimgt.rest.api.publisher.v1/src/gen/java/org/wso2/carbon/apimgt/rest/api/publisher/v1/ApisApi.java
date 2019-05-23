@@ -15,6 +15,7 @@ import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.LifecycleHistoryDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.LifecycleStateDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.MediationListDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.MediationDTO;
+import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.APIMonetizationInfoDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.ResourcePolicyListDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.ResourcePolicyInfoDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.ScopeListDTO;
@@ -377,6 +378,25 @@ public class ApisApi  {
     @ApiParam(value = "Validator for conditional requests; based on ETag.\n"  )@HeaderParam("If-Match") String ifMatch)
     {
     return delegate.apisApiIdMediationPoliciesPost(body,apiId,ifMatch);
+    }
+    @POST
+    @Path("/{apiId}/monetize")
+    @Consumes({ "application/json" })
+    @Produces({ "application/json" })
+    @io.swagger.annotations.ApiOperation(value = "Configure monetization for a given API", notes = "This operation can be used to configure monetization for a given API.\n", response = void.class)
+    @io.swagger.annotations.ApiResponses(value = { 
+        @io.swagger.annotations.ApiResponse(code = 201, message = "OK.\nMonetization status changed successfully.\n"),
+        
+        @io.swagger.annotations.ApiResponse(code = 400, message = "Bad Request.\nInvalid request or validation error\n"),
+        
+        @io.swagger.annotations.ApiResponse(code = 404, message = "Not Found.\nRequested resource does not exist.\n"),
+        
+        @io.swagger.annotations.ApiResponse(code = 406, message = "Not Acceptable.\nThe requested media type is not supported\n") })
+
+    public Response apisApiIdMonetizePost(@ApiParam(value = "**API ID** consisting of the **UUID** of the API.\n",required=true ) @PathParam("apiId")  String apiId,
+    @ApiParam(value = "Document object that needs to be added\n" ,required=true ) APIMonetizationInfoDTO body)
+    {
+    return delegate.apisApiIdMonetizePost(apiId,body);
     }
     @PUT
     @Path("/{apiId}")

@@ -2547,17 +2547,57 @@ public class SQLConstants {
                     " QUOTA_UNIT, UNIT_TIME, TIME_UNIT, IS_DEPLOYED, UUID,CUSTOM_ATTRIBUTES) \n" +
             "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
 
+
+
+    /** Monetization related constants **/
+    public static final String ADD_MONETIZATION_DATA_SQL = "INSERT INTO AM_MONETIZATION VALUES (?,?,?,?)";
+
+    public static final String DELETE_MONETIZATION_DATA_SQL = "DELETE FROM AM_MONETIZATION WHERE API_ID = ?";
+
+    public static final String GET_STRIPE_PRODUCT_BY_API = "SELECT STRIPE_PRODUCT_ID FROM AM_MONETIZATION WHERE API_ID = ? ";
+
+    public static final String GET_STRIPE_PLANS_BY_API = "SELECT STRIPE_PLAN_ID FROM AM_MONETIZATION WHERE API_ID = ? ";
+
+    public static final String GET_API_ID_BY_IDENTIFIER = "SELECT API_ID FROM AM_API WHERE API_NAME = ? AND API_VERSION = ? AND API_PROVIDER = ?";
+
+    public static final String GET_PLANS_BY_API_STRIPE_PRODUCT = "SELECT TIER_NAME, STRIPE_PLAN_ID FROM AM_MONETIZATION WHERE API_ID = ? AND STRIPE_PRODUCT_ID = ?";
+
+
+
+
+
+
+
+
+
     public static final String INSERT_SUBSCRIPTION_POLICY_SQL =
             "INSERT INTO AM_POLICY_SUBSCRIPTION (NAME, DISPLAY_NAME, TENANT_ID, DESCRIPTION, QUOTA_TYPE, QUOTA, \n" +
                     " QUOTA_UNIT, UNIT_TIME, TIME_UNIT, IS_DEPLOYED, UUID, RATE_LIMIT_COUNT, \n" +
-                    " RATE_LIMIT_TIME_UNIT,STOP_ON_QUOTA_REACH,BILLING_PLAN) \n" +
-                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                    " RATE_LIMIT_TIME_UNIT,STOP_ON_QUOTA_REACH,BILLING_PLAN,MONETIZATION_PLAN,FIXED_RATE,BILLING_CYCLE,PRICE_PER_REQUEST) \n" +
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     public static final String INSERT_SUBSCRIPTION_POLICY_WITH_CUSTOM_ATTRIB_SQL =
             "INSERT INTO AM_POLICY_SUBSCRIPTION (NAME, DISPLAY_NAME, TENANT_ID, DESCRIPTION, QUOTA_TYPE, QUOTA, \n" +
                     " QUOTA_UNIT, UNIT_TIME, TIME_UNIT, IS_DEPLOYED, UUID,  RATE_LIMIT_COUNT, \n" +
-                    " RATE_LIMIT_TIME_UNIT,STOP_ON_QUOTA_REACH,BILLING_PLAN,CUSTOM_ATTRIBUTES) \n" +
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                    " RATE_LIMIT_TIME_UNIT, STOP_ON_QUOTA_REACH, BILLING_PLAN, CUSTOM_ATTRIBUTES, MONETIZATION_PLAN, \n" +
+                    "FIXED_RATE, BILLING_CYCLE, PRICE_PER_REQUEST) \n" +
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+
+    public static final String INSERT_SUBSCRIPTION_POLICY_MONETIZATION_DATA_SQL =
+            "INSERT INTO AM_POLICY_MONETIZATION (SUBSCRIPTION_POLICY_ID, MONETIZATION_PLAN, FIXED_PRICE, DURATION, " +
+                    "PRICE_PER_REQUEST) VALUES (?,?,?,?,?)";
+
+    public static final String INSERT_MONETIZATION_PLAN_DATA_SQL =
+            "INSERT INTO AM_POLICY_MONETIZATION_PLAN_MAPPING (POLICY_UUID, PRODUCT_ID, PLAN_ID) VALUES (?,?,?)";
+
+    public static final String UPDATE_MONETIZATION_PLAN_ID_SQL = "UPDATE AM_POLICY_MONETIZATION_PLAN_MAPPING SET PLAN_ID = ? " +
+            "WHERE POLICY_UUID = ? AND PRODUCT_ID = ?";
+
+    public static final String DELETE_MONETIZATION_PLAN_DATA = "DELETE FROM AM_POLICY_MONETIZATION_PLAN_MAPPING WHERE " +
+            "POLICY_UUID = ?";
+
+    public static final String GET_BILLING_PLAN_DATA = "SELECT PRODUCT_ID, PLAN_ID FROM AM_POLICY_MONETIZATION_PLAN_MAPPING " +
+            "WHERE POLICY_UUID = ?";
 
 
     public static final String INSERT_GLOBAL_POLICY_SQL =
@@ -2751,7 +2791,11 @@ public class SQLConstants {
                     "RATE_LIMIT_COUNT = ?," +
                     "RATE_LIMIT_TIME_UNIT = ?, " +
                     "STOP_ON_QUOTA_REACH = ?, " +
-                    "BILLING_PLAN = ? "+
+                    "BILLING_PLAN = ?, " +
+                    "MONETIZATION_PLAN = ?," +
+                    "FIXED_RATE = ?," +
+                    "BILLING_CYCLE = ?," +
+                    "PRICE_PER_REQUEST = ? " +
             "WHERE NAME = ? AND TENANT_ID = ?";
 
     public static final String UPDATE_SUBSCRIPTION_POLICY_WITH_CUSTOM_ATTRIBUTES_SQL =
@@ -2768,7 +2812,11 @@ public class SQLConstants {
                     "RATE_LIMIT_TIME_UNIT = ?, " +
                     "STOP_ON_QUOTA_REACH = ?, " +
                     "BILLING_PLAN = ?, "+
-                    " CUSTOM_ATTRIBUTES = ? "+
+                    "CUSTOM_ATTRIBUTES = ?, "+
+                    "MONETIZATION_PLAN = ?," +
+                    "FIXED_RATE = ?," +
+                    "BILLING_CYCLE = ?," +
+                    "PRICE_PER_REQUEST = ? " +
             "WHERE NAME = ? AND TENANT_ID = ?";
 
     public static final String UPDATE_SUBSCRIPTION_POLICY_BY_UUID_SQL =
@@ -2784,7 +2832,12 @@ public class SQLConstants {
                     "RATE_LIMIT_COUNT = ?," +
                     "RATE_LIMIT_TIME_UNIT = ?, " +
                     "STOP_ON_QUOTA_REACH = ?, " +
-                    "BILLING_PLAN = ? "+
+                    "BILLING_PLAN = ?, "+
+                    "MONETIZATION_PLAN = ?," +
+                    "FIXED_RATE = ?," +
+                    "BILLING_CYCLE = ?," +
+                    "PRICE_PER_REQUEST = ? " +
+
                     "WHERE UUID = ?";
 
     public static final String UPDATE_SUBSCRIPTION_POLICY_WITH_CUSTOM_ATTRIBUTES_BY_UUID_SQL =
@@ -2801,7 +2854,11 @@ public class SQLConstants {
                     "RATE_LIMIT_TIME_UNIT = ?, " +
                     "STOP_ON_QUOTA_REACH = ?, " +
                     "BILLING_PLAN = ?, "+
-                    "CUSTOM_ATTRIBUTES = ? "+
+                    "CUSTOM_ATTRIBUTES = ?, "+
+                    "MONETIZATION_PLAN = ?," +
+                    "FIXED_RATE = ?," +
+                    "BILLING_CYCLE = ?," +
+                    "PRICE_PER_REQUEST = ? " +
                     "WHERE UUID = ?";
 
     public static final String UPDATE_GLOBAL_POLICY_SQL =

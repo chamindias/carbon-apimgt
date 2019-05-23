@@ -8,6 +8,9 @@ include("/jagg/jagg.jag");
     site = require("/site/conf/site.json"),
     msg = require("/site/conf/ui-messages.jag");
 
+
+    var log = new Log();
+
     if(jagg.getUser() == null){
         print({
             error:true,
@@ -34,12 +37,19 @@ include("/jagg/jagg.jag");
             var stopOnQuotaReach =  request.getParameter("stopOnQuotaReach", "UTF-8");
             var tierPlan =  request.getParameter("tierPlan", "UTF-8");
             var attributes =  parse(request.getParameter("attributes", "UTF-8"));
+            var monetizationPlan = request.getParameter("monetizationPlan", "UTF-8");
+            var fixedRate = request.getParameter("fixedRate", "UTF-8");
+            var billingCycle = request.getParameter("billingCycle", "UTF-8");
+            var pricePerRequest = request.getParameter("pricePerRequest", "UTF-8");
 
             mod = jagg.module("policy");
 
-            result = mod.addSubscriptionPolicy(action, policyName, description, defaultQuotaPolicy, defaultRequestCount, defaultBandwidth, defaultBandwidthUnit, defaultUnitTime, defaultTimeUnit, rateLimitCount, rateLimitTimeUnit, stopOnQuotaReach, tierPlan, attributes);
-           
-            //add permissions            
+            result = mod.addSubscriptionPolicy(action, policyName, description, defaultQuotaPolicy,
+                                                defaultRequestCount, defaultBandwidth, defaultBandwidthUnit,
+                                                defaultUnitTime, defaultTimeUnit, rateLimitCount, rateLimitTimeUnit,
+                                                stopOnQuotaReach, tierPlan, attributes, monetizationPlan, fixedRate,
+                                                billingCycle, pricePerRequest);
+            //add permissions
             var tierPermission = {};
             tierPermission.policyName = policyName;
             tierPermission.permissiontype = request.getParameter("permissionType", "UTF-8");

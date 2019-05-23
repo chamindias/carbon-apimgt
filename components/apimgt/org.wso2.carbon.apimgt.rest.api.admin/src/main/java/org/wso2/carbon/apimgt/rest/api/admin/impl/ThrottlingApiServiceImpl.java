@@ -488,6 +488,13 @@ public class ThrottlingApiServiceImpl extends ThrottlingApiService {
                 }
             } catch (PolicyNotFoundException ignore) {
             }
+
+
+
+
+
+
+
             //Add the policy
             apiProvider.addPolicy(subscriptionPolicy);
 
@@ -576,6 +583,14 @@ public class ThrottlingApiServiceImpl extends ThrottlingApiService {
             SubscriptionPolicy subscriptionPolicy = SubscriptionThrottlePolicyMappingUtil
                     .fromSubscriptionThrottlePolicyDTOToModel(
                             body);
+
+
+
+
+
+
+
+
             apiProvider.updatePolicy(subscriptionPolicy);
 
             //retrieve the new policy and send back as the response
@@ -621,6 +636,13 @@ public class ThrottlingApiServiceImpl extends ThrottlingApiService {
                 log.error(message);
                 throw new APIManagementException(message);
             }
+
+
+
+
+
+
+
             apiProvider.deletePolicy(username, PolicyConstants.POLICY_LEVEL_SUB, existingPolicy.getPolicyName());
             return Response.ok().build();
         } catch (APIManagementException e) {
