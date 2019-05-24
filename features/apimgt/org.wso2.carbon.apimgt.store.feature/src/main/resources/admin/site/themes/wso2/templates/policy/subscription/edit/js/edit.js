@@ -21,6 +21,10 @@ var addSubscriptionPolicy = function () {
 
         stopOnQuotaReach:$('#stopOnQuotaReach').is( ":checked" ),
         tierPlan:$('#tierPlan').val(),
+        monetizationPlan: $('#monetizationPlan').val(),
+        fixedRate: $('#fixedRate').val(),
+        billingCycle: $('#billingCycle').val(),
+        pricePerRequest: $('#pricePerRequest').val(),
         permissionType:$('#permissionTypes input:radio:checked').val(),
         roles:$('#roles').val(),
         attributes:JSON.stringify(attributes)
@@ -224,6 +228,34 @@ function showHideDefaultQuotaPolicy(){
         $('#defaultRequestCountBasedDiv').show();
     }
 
+}
+
+function populateMonetizationParams() {
+    var tierPlan = $('#tierPlan').val();
+    if (tierPlan == "COMMERCIAL") {
+        $('#monetizationPlanData').show();
+    } else {
+        $('#monetizationPlanData').hide();
+    }
+    populateMonetizationData();
+}
+
+function populateMonetizationData() {
+    var tierPlan = $('#tierPlan').val();
+    var monetizationPlan = $('#monetizationPlan').val();
+    if (monetizationPlan == "FixedRate" && tierPlan == "COMMERCIAL") {
+        $('#fixedRatePlanData').show();
+        $('#billingInterval').show();
+        $('#dynamicRatePlanData').hide();
+    } else if (monetizationPlan == "DynamicRate" && tierPlan == "COMMERCIAL") {
+        $('#fixedRatePlanData').hide();
+        $('#dynamicRatePlanData').show();
+        $('#billingInterval').show();
+    } else {
+        $('#fixedRatePlanData').hide();
+        $('#dynamicRatePlanData').hide();
+        $('#billingInterval').hide();
+    }
 }
 
 function validateInputs() {
