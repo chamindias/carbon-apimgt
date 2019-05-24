@@ -54,6 +54,7 @@ import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.APIEndpointSecurityDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.APIInfoDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.APIListDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.APIMaxTpsDTO;
+import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.APIMonetizationInfoDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.APIOperationsDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.EndpointConfigAttributesDTO;
 import org.wso2.carbon.apimgt.rest.api.publisher.v1.dto.EndpointConfigDTO;
@@ -249,6 +250,34 @@ public class APIMappingUtil {
         model.setAuthorizationHeader(dto.getAuthorizationHeader());
         model.setApiSecurity(getSecurityScheme(dto.getSecurityScheme()));
         return model;
+    }
+
+    /**
+     * This method creates the API monetization information DTO
+     *
+     * @param apiIdentifier API identifier
+     * @return monetization information DTO
+     * @throws APIManagementException if failed to construct the DTO
+     */
+    public static APIMonetizationInfoDTO getMonetizationInfoDTO(APIIdentifier apiIdentifier)
+            throws APIManagementException {
+
+        APIProvider apiProvider = RestApiUtil.getLoggedInUserProvider();
+        API api = apiProvider.getAPI(apiIdentifier);
+        APIMonetizationInfoDTO apiMonetizationInfoDTO = new APIMonetizationInfoDTO();
+        //set the information relatated to monetization to the DTO
+        apiMonetizationInfoDTO.setEnabled(api.getMonetizationStatus());
+        Map<String, String> monetizationPropertiesMap = new HashMap<>();
+
+        if (api.getMonetizationProperties() != null) {
+            JSONObject monetizationProperties = api.getMonetizationProperties();
+            for (Object propertyKey : monetizationProperties.keySet()) {
+                String key = (String) propertyKey;
+                monetizationPropertiesMap.put(key, (String) monetizationProperties.get(key));
+            }
+        }
+        apiMonetizationInfoDTO.setProperties(monetizationPropertiesMap);
+        return apiMonetizationInfoDTO;
     }
 
     /**
