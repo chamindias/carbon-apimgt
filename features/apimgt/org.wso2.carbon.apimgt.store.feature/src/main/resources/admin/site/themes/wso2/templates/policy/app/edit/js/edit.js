@@ -201,6 +201,31 @@ function showHideDefaultQuotaPolicy(){
 
 }
 
+function populateMonetizationParams() {
+    var tierPlan = $('#tierPlan').val();
+    if (tierPlan == "COMMERCIAL") {
+        $('#monetizationPlanData').show();
+    } else {
+        $('#monetizationPlanData').hide();
+    }
+    populateMonetizationData();
+}
+
+function populateMonetizationData() {
+    var tierPlan = $('#tierPlan').val();
+    var monetizationPlan = $('#monetizationPlan').val();
+    if (monetizationPlan == "FixedRate" && tierPlan == "COMMERCIAL") {
+        $('#fixedRatePlanData').show();
+        $('#dynamicRatePlanData').hide();
+    } else if (monetizationPlan == "DynamicRate" && tierPlan == "COMMERCIAL") {
+        $('#fixedRatePlanData').hide();
+        $('#dynamicRatePlanData').show();
+    } else {
+        $('#fixedRatePlanData').hide();
+        $('#dynamicRatePlanData').hide();
+    }
+}
+
 function validateInputs(){
    //validate name
    var requiredMsg = $('#errorMsgRequired').val();
