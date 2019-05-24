@@ -1680,6 +1680,7 @@
         <span.reporter.version>0.1.0</span.reporter.version>
         <opentracing.mock.version>0.31.0</opentracing.mock.version>
         <aspectj.version>1.9.3</aspectj.version>
+        <stripe.version>9.8.0</stripe.version>
     </properties>
 </project>
 

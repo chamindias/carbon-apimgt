@@ -373,6 +373,34 @@ public final class APIConstants {
     public static final String ENDPOINT_PASSWORD_ELEMENT = "endpointPpassword";
     public static final String FEDERATED_USER = "FEDERATED";
 
+    //Monetization related constants
+    public static final String MONETIZATION_IMPL = "Monetization." + "MonetizationImpl";
+    public static final String TYPE = "type";
+    public static final String SERVICE_TYPE = "service";
+    public static final String CURRENCY = "currency";
+    public static final String USD = "usd";
+    public static final String PRODUCT = "product";
+    public static final String PRODUCT_NICKNAME = "nickname";
+    public static final String INTERVAL = "interval";
+    public static final String BILLING_CYCLE = "billingCycle";
+    public static final String FIXED_RATE = "fixedRate";
+    public static final String DYNAMIC_RATE = "dynamicRate";
+    public static final String FIXED_PRICE = "fixedPrice";
+    public static final String AMOUNT = "amount";
+    public static final String USAGE_TYPE = "usage_type";
+    public static final String LICENSED_USAGE = "licensed";
+    public static final String METERED_USAGE = "metered";
+    public static final String PRICE_PER_REQUEST = "pricePerRequest";
+    public static final String PRODUCT_ID = "productId";
+    public static final String PLAN_ID = "planId";
+
+    //Constants related to monetization of the API
+    public static final String API_MONETIZATION_STATUS = "isMonetizationEnabled";
+    public static final String API_MONETIZATION_PROPERTIES = "monetizationProperties";
+    public static final String MONETIZATION_INFO = "MonetizationInfo";
+    public static final String BILLING_ENGINE_PLATFORM_ACCOUNT_KEY = "PlatformAccountStripeKey";
+    public static final String BILLING_ENGINE_CONNECTED_ACCOUNT_KEY = "ConnectedAccountStripeKey";
+
     //documentation rxt
 
     public static final String DOC_NAME = "overview_name";

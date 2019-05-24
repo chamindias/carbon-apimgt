@@ -9478,6 +9478,15 @@ public class ApiMgtDAO {
             policyStatement.setString(15, policy.getBillingPlan());
             if (hasCustomAttrib) {
                 policyStatement.setBytes(16, policy.getCustomAttributes());
+                policyStatement.setString(17, policy.getMonetizationPlan());
+                policyStatement.setString(18, policy.getMonetizationPlanProperties().get(APIConstants.FIXED_PRICE));
+                policyStatement.setString(19, policy.getMonetizationPlanProperties().get(APIConstants.BILLING_CYCLE));
+                policyStatement.setString(20, policy.getMonetizationPlanProperties().get(APIConstants.PRICE_PER_REQUEST));
+            } else {
+                policyStatement.setString(16, policy.getMonetizationPlan());
+                policyStatement.setString(17, policy.getMonetizationPlanProperties().get(APIConstants.FIXED_PRICE));
+                policyStatement.setString(18, policy.getMonetizationPlanProperties().get(APIConstants.BILLING_CYCLE));
+                policyStatement.setString(19, policy.getMonetizationPlanProperties().get(APIConstants.PRICE_PER_REQUEST));
             }
             policyStatement.executeUpdate();
 
@@ -9495,6 +9504,386 @@ public class ApiMgtDAO {
             handleException("Failed to add Subscription Policy: " + policy, e);
         } finally {
             APIMgtDBUtil.closeAllConnections(policyStatement, conn, null);
+        }
+    }
+
+    /**
+     * Add monetization plan data to the database
+     *
+     * @param policy subscription policy
+     * @param productId product id (in the billing engine)
+     * @param planId plan id (in the billing engine)
+     * @throws APIManagementException if failed to add monetization plan data to the database
+     */
+    public void addMonetizationPlanData(SubscriptionPolicy policy, String productId, String planId)
+            throws APIManagementException{
+
+        Connection conn = null;
+        PreparedStatement policyStatement = null;
+        try {
+            conn = APIMgtDBUtil.getConnection();
+            conn.setAutoCommit(false);
+            String addQuery = SQLConstants.INSERT_MONETIZATION_PLAN_DATA_SQL;
+            policyStatement = conn.prepareStatement(addQuery);
+            policyStatement.setString(1, getSubscriptionPolicy(policy.getPolicyName(),policy.getTenantId()).getUUID());
+            policyStatement.setString(2, productId);
+            policyStatement.setString(3, planId);
+            policyStatement.executeUpdate();
+            conn.commit();
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    // Rollback failed. Exception will be thrown later for upper exception
+                    log.error("Failed to rollback adding monetization plan for : " + policy.getPolicyName(), ex);
+                }
+            }
+            handleException("Failed to add  monetization plan for : " + policy, e);
+        } finally {
+            APIMgtDBUtil.closeAllConnections(policyStatement, conn, null);
+        }
+    }
+
+    /**
+     * Delete monetization plan data from the database
+     *
+     * @param policy subscription policy
+     * @throws APIManagementException if failed to delete monetization plan data from the database
+     */
+    public void deleteMonetizationPlanData(SubscriptionPolicy policy)
+            throws APIManagementException {
+
+        Connection conn = null;
+        PreparedStatement policyStatement = null;
+        try {
+            conn = APIMgtDBUtil.getConnection();
+            conn.setAutoCommit(false);
+            String deleteQuery = SQLConstants.DELETE_MONETIZATION_PLAN_DATA;
+            policyStatement = conn.prepareStatement(deleteQuery);
+            policyStatement.setString(1, getSubscriptionPolicy(policy.getPolicyName(), policy.getTenantId()).getUUID());
+            policyStatement.executeUpdate();
+            conn.commit();
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    // Rollback failed. Exception will be thrown later for upper exception
+                    log.error("Failed to rollback the delete monetization plan action for policy : " +
+                            policy.getPolicyName(), ex);
+                }
+            }
+            handleException("Failed to delete the monetization plan action for policy : " + policy.getPolicyName(), e);
+        } finally {
+            APIMgtDBUtil.closeAllConnections(policyStatement, conn, null);
+        }
+    }
+
+    /**
+     * Update monetization plan data in the database
+     *
+     * @param policy subscription policy
+     * @param productId product id (in the billing engine)
+     * @param planId plan id (in the billing engine)
+     * @throws APIManagementException if failed to update monetization plan data to the database
+     */
+    public void updateMonetizationPlanData(SubscriptionPolicy policy, String productId, String planId)
+            throws APIManagementException{
+
+        Connection conn = null;
+        PreparedStatement policyStatement = null;
+        try {
+            conn = APIMgtDBUtil.getConnection();
+            conn.setAutoCommit(false);
+            String updateQuery = SQLConstants.UPDATE_MONETIZATION_PLAN_ID_SQL;
+            policyStatement = conn.prepareStatement(updateQuery);
+            policyStatement.setString(1, planId);
+            policyStatement.setString(2, getSubscriptionPolicy(policy.getPolicyName(),policy.getTenantId()).getUUID());
+            policyStatement.setString(3, productId);
+            policyStatement.execute();
+            conn.commit();
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    // Rollback failed. Exception will be thrown later for upper exception
+                    log.error("Failed to rollback the update monetization plan action for policy : " + policy.toString(), ex);
+                }
+            }
+            handleException("Failed to add update monetization plan for policy: " + policy, e);
+        } finally {
+            APIMgtDBUtil.closeAllConnections(policyStatement, conn, null);
+        }
+    }
+
+    /**
+     * Get plan data (in billing engine) for a given subscription policy
+     *
+     * @param policy subscription policy
+     * @return plan data of subscription policy
+     * @throws APIManagementException if failed to get plan data
+     */
+    public  Map<String,String> getPlanData(SubscriptionPolicy policy) throws APIManagementException {
+
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        Map<String,String >  planData = new HashMap<String,String >();
+        try {
+            conn = APIMgtDBUtil.getConnection();
+            ps = conn.prepareStatement(SQLConstants.GET_BILLING_PLAN_DATA);
+            ps.setString(1, getSubscriptionPolicy(policy.getPolicyName(),policy.getTenantId()).getUUID());
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                planData.put(APIConstants.PRODUCT_ID,rs.getString("PRODUCT_ID"));
+                planData.put(APIConstants.PLAN_ID,rs.getString("PLAN_ID"));
+            }
+        } catch (SQLException e) {
+            handleException("Error while getting plan data for : " + policy , e);
+        } finally {
+            APIMgtDBUtil.closeAllConnections(ps, conn, rs);
+        }
+        return planData;
+    }
+
+    /**
+     * Add subscription policy monetization data to the database
+     *
+     * @param policy subscription policy
+     * @param monetizationPlan monetization plan name
+     * @param monetizationPlanProperties monetization plan name properties
+     * @throws APIManagementException if failed to Add subscription policy monetization data
+     */
+    public void addSubscriptionPolicyMonetizationData(SubscriptionPolicy policy, String monetizationPlan,
+                                                      Map<String, String> monetizationPlanProperties)
+            throws APIManagementException {
+        Connection conn = null;
+        PreparedStatement policyStatement = null;
+
+        try {
+            conn = APIMgtDBUtil.getConnection();
+            conn.setAutoCommit(false);
+            String addQuery = SQLConstants.INSERT_SUBSCRIPTION_POLICY_MONETIZATION_DATA_SQL;
+            policyStatement = conn.prepareStatement(addQuery);
+            policyStatement.setInt(1, policy.getPolicyId());
+            policyStatement.setString(2, monetizationPlan);
+            policyStatement.setString(3, monetizationPlanProperties.get(APIConstants.FIXED_PRICE));
+            policyStatement.setString(4, monetizationPlanProperties.get(APIConstants.BILLING_CYCLE));
+            policyStatement.setString(5, monetizationPlanProperties.get(APIConstants.PRICE_PER_REQUEST));
+            policyStatement.executeUpdate();
+            conn.commit();
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    // Rollback failed. Exception will be thrown later for upper exception
+                    log.error("Failed adding subscription policy monetization data of : " + policy.toString(), ex);
+                }
+            }
+            handleException("Failed to add subscription policy monetization data : " + policy, e);
+        } finally {
+            APIMgtDBUtil.closeAllConnections(policyStatement, conn, null);
+        }
+    }
+
+    /**
+     * This method is used to add monetization data to the DB
+     *
+     * @param apiId       API ID
+     * @param productId   stripe product ID
+     * @param tierPlanMap stripe plan and tier mapping
+     * @throws APIManagementException if failed to add monetization data to the DB
+     */
+    public void addMonetizationData(String apiId, String productId, Map<String, String> tierPlanMap)
+            throws APIManagementException {
+
+        PreparedStatement preparedStatement = null;
+        Connection connection = null;
+        try {
+            if (!tierPlanMap.isEmpty()) {
+                connection = APIMgtDBUtil.getConnection();
+                preparedStatement = connection.prepareStatement(SQLConstants.ADD_MONETIZATION_DATA_SQL);
+                initialAutoCommit = connection.getAutoCommit();
+                connection.setAutoCommit(false);
+                for (Map.Entry<String, String> entry : tierPlanMap.entrySet()) {
+                    preparedStatement.setString(1, apiId);
+                    preparedStatement.setString(2, productId);
+                    preparedStatement.setString(3, entry.getKey());
+                    preparedStatement.setString(4, entry.getValue());
+                    preparedStatement.addBatch();
+                }
+                preparedStatement.executeBatch();
+            }
+        } catch (SQLException e) {
+            try {
+                if (connection != null) {
+                    connection.rollback();
+                }
+            } catch (SQLException ex) {
+                handleException("Failed to add monetization data for API : " + apiId, ex);
+            } finally {
+                APIMgtDBUtil.setAutoCommit(connection, initialAutoCommit);
+            }
+        } finally {
+            APIMgtDBUtil.closeAllConnections(preparedStatement, connection, null);
+        }
+    }
+
+    /**
+     * This method is used to get stripe plan and tier mapping
+     *
+     * @param apiID           API ID
+     * @param stripeProductId stripe product ID
+     * @return mapping between tier and stripe plans
+     */
+    public Map<String, String> getStripePlanMap(String apiID, String stripeProductId) throws APIManagementException {
+
+        Map<String, String> stripePlanTierMap = new HashMap<String, String>();
+        Connection connection = null;
+        PreparedStatement statement = null;
+        try {
+            connection = APIMgtDBUtil.getConnection();
+            statement = connection.prepareStatement(SQLConstants.GET_PLANS_BY_API_STRIPE_PRODUCT);
+            statement.setString(1, apiID);
+            statement.setString(2, stripeProductId);
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                String tierName = rs.getString("TIER_NAME");
+                String stripePlanId = rs.getString("STRIPE_PLAN_ID");
+                stripePlanTierMap.put(tierName, stripePlanId);
+            }
+            connection.commit();
+        } catch (SQLException e) {
+            handleException("Failed to get stripe plan and tier mapping for API : " + apiID, e);
+        } finally {
+            APIMgtDBUtil.closeAllConnections(statement, connection, null);
+        }
+        return stripePlanTierMap;
+    }
+
+
+    /**
+     * This method is used to fetch the API ID in AM_API table
+     *
+     * @param apiName     API name
+     * @param apiVersion  API version
+     * @param apiProvider API provider
+     * @return API ID in AM_API table
+     */
+    public String getApiId(String apiName, String apiVersion, String apiProvider) throws APIManagementException {
+
+        String apiId = null;
+        Connection connection = null;
+        PreparedStatement statement = null;
+        try {
+            connection = APIMgtDBUtil.getConnection();
+            statement = connection.prepareStatement(SQLConstants.GET_API_ID_BY_IDENTIFIER);
+            statement.setString(1, apiName);
+            statement.setString(2, apiVersion);
+            statement.setString(3, apiProvider);
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                apiId = rs.getString("API_ID");
+            }
+            connection.commit();
+        } catch (SQLException e) {
+            handleException("Failed to get API ID of API : " + apiName, e);
+        } finally {
+            APIMgtDBUtil.closeAllConnections(statement, connection, null);
+        }
+        return apiId;
+    }
+
+    /**
+     * This method is used to get the product id in the billing engine for a give API
+     *
+     * @param apiId API ID
+     * @return billing engine product ID of the give API
+     */
+    public String getStripeProductId(String apiId) throws APIManagementException {
+
+        String stripeProductId = null;
+        Connection connection = null;
+        PreparedStatement statement = null;
+        try {
+            connection = APIMgtDBUtil.getConnection();
+            statement = connection.prepareStatement(SQLConstants.GET_STRIPE_PRODUCT_BY_API);
+            statement.setString(1, apiId);
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                stripeProductId = rs.getString("STRIPE_PRODUCT_ID");
+            }
+            connection.commit();
+        } catch (SQLException e) {
+            handleException("Failed to get stripe product ID of API : " + apiId, e);
+        } finally {
+            APIMgtDBUtil.closeAllConnections(statement, connection, null);
+        }
+        return stripeProductId;
+    }
+
+    /**
+     * This method is used to get plan ids (in billing engine) list for a given API
+     *
+     * @param apiId API ID
+     * @return plan IDs (in billing engine) list for the given API
+     */
+    public List<String> getStripePlanIdListOfApi(String apiId) throws APIManagementException {
+
+        List<String> stripePlanIdList = new ArrayList<String>();
+        Connection connection = null;
+        PreparedStatement statement = null;
+        try {
+            connection = APIMgtDBUtil.getConnection();
+            statement = connection.prepareStatement(SQLConstants.GET_STRIPE_PLANS_BY_API);
+            statement.setString(1, apiId);
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                stripePlanIdList.add(rs.getString("STRIPE_PLAN_ID"));
+            }
+            connection.commit();
+        } catch (SQLException e) {
+
+            handleException("Failed to get billing engine plan ID list of API : " + apiId, e);
+        } finally {
+            APIMgtDBUtil.closeAllConnections(statement, connection, null);
+        }
+        return stripePlanIdList;
+    }
+
+    /**
+     * This method deletes monetization data for a given API from the DB
+     *
+     * @param apiId API ID
+     * @throws APIManagementException if failed to delete monetization data
+     */
+    public void deleteMonetizationData(String apiId) throws APIManagementException {
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+        try {
+            connection = APIMgtDBUtil.getConnection();
+            statement = connection.prepareStatement(SQLConstants.DELETE_MONETIZATION_DATA_SQL);
+            initialAutoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            statement.setString(1, apiId);
+            statement.executeUpdate();
+            connection.commit();
+        } catch (SQLException e) {
+            try {
+                if (connection != null) {
+                    connection.rollback();
+                }
+            } catch (SQLException ex) {
+                handleException("Failed to delete monetization data for API : " + apiId, ex);
+            } finally {
+                APIMgtDBUtil.setAutoCommit(connection, initialAutoCommit);
+            }
+        } finally {
+            APIMgtDBUtil.closeAllConnections(statement, connection, null);
         }
     }
 
@@ -10049,6 +10438,15 @@ public class ApiMgtDAO {
                 subPolicy.setRateLimitTimeUnit(rs.getString(ThrottlePolicyConstants.COLUMN_RATE_LIMIT_TIME_UNIT));
                 subPolicy.setStopOnQuotaReach(rs.getBoolean(ThrottlePolicyConstants.COLUMN_STOP_ON_QUOTA_REACH));
                 subPolicy.setBillingPlan(rs.getString(ThrottlePolicyConstants.COLUMN_BILLING_PLAN));
+                subPolicy.setMonetizationPlan(rs.getString(ThrottlePolicyConstants.COLUMN_MONETIZATION_PLAN));
+                Map<String, String> monetizationPlanProperties = subPolicy.getMonetizationPlanProperties();
+                monetizationPlanProperties.put(APIConstants.FIXED_PRICE,
+                        rs.getString(ThrottlePolicyConstants.COLUMN_FIXED_RATE));
+                monetizationPlanProperties.put(APIConstants.BILLING_CYCLE,
+                        rs.getString(ThrottlePolicyConstants.COLUMN_BILLING_CYCLE));
+                monetizationPlanProperties.put(APIConstants.PRICE_PER_REQUEST,
+                        rs.getString(ThrottlePolicyConstants.COLUMN_PRICE_PER_REQUEST));
+                subPolicy.setMonetizationPlanProperties(monetizationPlanProperties);
                 InputStream binary = rs.getBinaryStream(ThrottlePolicyConstants.COLUMN_CUSTOM_ATTRIB);
                 if (binary != null) {
                     byte[] customAttrib = APIUtil.toByteArray(binary);
@@ -10935,16 +11333,34 @@ public class ApiMgtDAO {
                         lengthOfStream);
                 if (!StringUtils.isBlank(policy.getPolicyName()) && policy.getTenantId() != -1) {
                     updateStatement.setString(13, policy.getPolicyName());
-                    updateStatement.setInt(14, policy.getTenantId());
+                    updateStatement.setString(13, policy.getMonetizationPlan());
+                    updateStatement.setString(14, policy.getMonetizationPlanProperties().get(APIConstants.FIXED_PRICE));
+                    updateStatement.setString(15, policy.getMonetizationPlanProperties().get(APIConstants.BILLING_CYCLE));
+                    updateStatement.setString(16, policy.getMonetizationPlanProperties().get(APIConstants.PRICE_PER_REQUEST));
+                    updateStatement.setString(17, policy.getPolicyName());
+                    updateStatement.setInt(18, policy.getTenantId());
                 } else if (!StringUtils.isBlank(policy.getUUID())) {
-                    updateStatement.setString(13, policy.getUUID());
+                    updateStatement.setString(13, policy.getMonetizationPlan());
+                    updateStatement.setString(14, policy.getMonetizationPlanProperties().get(APIConstants.FIXED_PRICE));
+                    updateStatement.setString(15, policy.getMonetizationPlanProperties().get(APIConstants.BILLING_CYCLE));
+                    updateStatement.setString(16, policy.getMonetizationPlanProperties().get(APIConstants.PRICE_PER_REQUEST));
+                    updateStatement.setString(17, policy.getUUID());
                 }
             } else {
                 if (!StringUtils.isBlank(policy.getPolicyName()) && policy.getTenantId() != -1) {
-                    updateStatement.setString(12, policy.getPolicyName());
-                    updateStatement.setInt(13, policy.getTenantId());
+                    updateStatement.setString(12, policy.getMonetizationPlan());
+                    updateStatement.setString(13, policy.getMonetizationPlanProperties().get(APIConstants.FIXED_PRICE));
+                    updateStatement.setString(14, policy.getMonetizationPlanProperties().get(APIConstants.BILLING_CYCLE));
+                    updateStatement.setString(15, policy.getMonetizationPlanProperties().get(APIConstants.PRICE_PER_REQUEST));
+                    updateStatement.setString(16, policy.getPolicyName());
+                    updateStatement.setInt(17, policy.getTenantId());
+
                 } else if (!StringUtils.isBlank(policy.getUUID())) {
-                    updateStatement.setString(12, policy.getUUID());
+                    updateStatement.setString(12, policy.getMonetizationPlan());
+                    updateStatement.setString(13, policy.getMonetizationPlanProperties().get(APIConstants.FIXED_PRICE));
+                    updateStatement.setString(14, policy.getMonetizationPlanProperties().get(APIConstants.BILLING_CYCLE));
+                    updateStatement.setString(15, policy.getMonetizationPlanProperties().get(APIConstants.PRICE_PER_REQUEST));
+                    updateStatement.setString(16, policy.getUUID());
                 }
             }
             updateStatement.executeUpdate();
