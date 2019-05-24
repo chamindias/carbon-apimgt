@@ -19,6 +19,7 @@
 package org.wso2.carbon.apimgt.rest.api.publisher.v1.impl;
 
 import com.google.gson.Gson;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -50,6 +51,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
@@ -945,6 +947,74 @@ public class ApisApiServiceImpl implements ApisApiService {
             MessageContext messageContext) {
         // do some magic!
         return Response.ok().entity("magic!").build();
+    }
+
+    /**
+     * Monetize (enable or disable) for a given API
+     *
+     * @param apiId API ID
+     * @param body request body
+     * @param messageContext message context
+     * @return monetizationDTO
+     */
+    @Override
+    public Response apisApiIdMonetizePost(String apiId, APIMonetizationInfoDTO body, MessageContext messageContext) {
+        try {
+            if (StringUtils.isBlank(apiId)) {
+                String errorMessage = "API ID cannot be empty or null when configuring monetization.";
+                RestApiUtil.handleBadRequest(errorMessage, log);
+            }
+            APIProvider apiProvider = RestApiUtil.getLoggedInUserProvider();
+            String tenantDomain = RestApiUtil.getLoggedInUserTenantDomain();
+            APIIdentifier apiIdentifier = APIMappingUtil.getAPIIdentifierFromUUID(apiId, tenantDomain);
+            API api = apiProvider.getAPI(apiIdentifier);
+
+            if (!APIConstants.PUBLISHED.equalsIgnoreCase(api.getStatus())) {
+                String errorMessage = "API " + apiIdentifier.getApiName() +
+                        " should be in published state to configure monetization.";
+                RestApiUtil.handleBadRequest(errorMessage, log);
+            }
+            //set the monetization status
+            boolean monetizationEnabled = body.isEnabled();
+            api.setMonetizationStatus(monetizationEnabled);
+            //clear the existing properties related to monetization
+            api.getMonetizationProperties().clear();
+            Map<String, String> monetizationProperties = body.getProperties();
+
+            if (MapUtils.isNotEmpty(monetizationProperties)) {
+                String errorMessage = RestApiPublisherUtils.validateMonetizationProperties(monetizationProperties);
+                if (!errorMessage.isEmpty()) {
+                    RestApiUtil.handleBadRequest(errorMessage, log);
+                }
+                for (Map.Entry<String, String> currentEntry : monetizationProperties.entrySet()) {
+                    api.addMonetizationProperty(currentEntry.getKey(), currentEntry.getValue());
+                }
+            }
+            apiProvider.configureMonetizationInAPIArtifact(api);
+            Monetization monetizationImplementation = apiProvider.getMonetizationImplClass();
+            HashMap monetizationDataMap = new Gson().fromJson(api.getMonetizationProperties().toString(), HashMap.class);
+            boolean isMonetizationStateChangeSuccessful;
+
+            if (MapUtils.isEmpty(monetizationDataMap)) {
+                String errorMessage = "Monetization data map is empty for API ID " + apiId;
+                RestApiUtil.handleInternalServerError(errorMessage, log);
+            }
+            if (monetizationEnabled) {
+                isMonetizationStateChangeSuccessful = monetizationImplementation.enableMonetization
+                        (tenantDomain, api, monetizationDataMap);
+            } else {
+                isMonetizationStateChangeSuccessful = monetizationImplementation.disableMonetization
+                        (tenantDomain, api, monetizationDataMap);
+            }
+            if (isMonetizationStateChangeSuccessful) {
+                APIMonetizationInfoDTO monetizationInfoDTO = APIMappingUtil.getMonetizationInfoDTO(apiIdentifier);
+                return Response.ok().entity(monetizationInfoDTO).build();
+            }
+        } catch (APIManagementException e) {
+            String errorMessage = "Error while configuring monetization for API ID " + apiId;
+            RestApiUtil.handleInternalServerError(errorMessage, e, log);
+        }
+        return Response.serverError().build();
     }
 
     @Override
