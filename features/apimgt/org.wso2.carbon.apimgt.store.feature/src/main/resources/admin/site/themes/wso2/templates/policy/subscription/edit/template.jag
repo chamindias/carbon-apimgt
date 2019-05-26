@@ -261,16 +261,7 @@
 	                    		</label>
 				        	</div>
 				        </div>
-				        
-				        <div class="form-group">
-                            <label class="col-sm-3 control-label"><%=i18n.localize("Billing Plan")%></label>
-                            <div class="col-sm-3">
-                                <select class="form-control select required" id="tierPlan" name="tierPlan">
-                                    <option value="FREE" selected="true"><%=i18n.localize("Free")%></option>
-                                    <option value="COMMERCIAL"><%=i18n.localize("Commercial")%></option>
-                                </select>
-                            </div>
-                        </div>
+
                         </div>
 						<div class="page-header">
 				            <h2><br></h2>
@@ -386,10 +377,31 @@
             populateCustomerAttributes(<%=customAttributeJSON%>);
         	}
           $('#tierPlan').val("<%=tierPlan%>");
+          if("<%=tierPlan%>" == "COMMERCIAL"){
+            $('#monetizationPlanData').show();
+            $('#billingInterval').show();
+            $('#billingCycle').val('<%=billingCycle%>');
+            if("<%=monetizationPlan%>" == "FixedRate"){
+                $('#fixedRatePlanData').show();
+                $('#dynamicRatePlanData').hide();
+                $('#monetizationPlan').val('FixedRate');
+                $('#fixedRate').val("<%=fixedPrice%>");
+            } else if("<%=monetizationPlan%>" == "DynamicRate") {
+                $('#dynamicRatePlanData').show();
+                $('#fixedRatePlanData').hide();
+                $('#monetizationPlan').val('DynamicRate');
+                $('#pricePerRequest').val("<%=pricePerRequest%>");
+            }
+          }
         } else {
              $('#stopOnQuotaReach').attr('checked', true);
              $('#description').val('');
         }
+        $('#monetizationPlanData').hide();
+        $('#fixedRatePlanData').hide();
+        $('#dynamicRatePlanData').hide();
+        $('#billingInterval').hide();
+        populateMonetizationParams();
         showHideDefaultQuotaPolicy();
 
     });
