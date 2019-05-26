@@ -281,6 +281,26 @@ public class APIMappingUtil {
     }
 
     /**
+     * Get map of monetized policies to plan mapping
+     *
+     * @param apiIdentifier API identifier
+     * @param monetizedPoliciesToPlanMapping map of monetized policies to plan mapping
+     * @return DTO of map of monetized policies to plan mapping
+     * @throws APIManagementException if failed to construct the DTO
+     */
+    public static APIMonetizationInfoDTO getMonetizedTiersDTO(APIIdentifier apiIdentifier,
+                                                              Map<String, String> monetizedPoliciesToPlanMapping)
+            throws APIManagementException {
+
+        APIProvider apiProvider = RestApiUtil.getLoggedInUserProvider();
+        API api = apiProvider.getAPI(apiIdentifier);
+        APIMonetizationInfoDTO apiMonetizationInfoDTO = new APIMonetizationInfoDTO();
+        apiMonetizationInfoDTO.setEnabled(api.getMonetizationStatus());
+        apiMonetizationInfoDTO.setProperties(monetizedPoliciesToPlanMapping);
+        return apiMonetizationInfoDTO;
+    }
+
+    /**
      * Returns the APIIdentifier given the uuid
      *
      * @param apiId                 API uuid

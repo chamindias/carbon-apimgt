@@ -75,4 +75,13 @@ public interface Monetization {
      */
     boolean disableMonetization(String tenantDomain, API api,
                                 Map<String, String> monetizationProperties) throws APIManagementException;
+
+    /**
+     * Get mapping of tiers and billing engine plans
+     *
+     * @param api API
+     * @return tier to billing plan mapping
+     * @throws APIManagementException if failed to get tier to billing plan mapping
+     */
+    Map<String,String> getMonetizedPoliciesToPlanMapping(API api) throws APIManagementException;
 }

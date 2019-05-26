@@ -37,7 +37,6 @@ import org.wso2.carbon.apimgt.api.model.policy.APIPolicy;
 import org.wso2.carbon.apimgt.impl.APIConstants;
 import org.wso2.carbon.apimgt.impl.GZIPUtils;
 import org.wso2.carbon.apimgt.impl.definitions.APIDefinitionFromOpenAPISpec;
-import org.wso2.carbon.apimgt.impl.definitions.APIDefinitionUsingOASParser;
 import org.wso2.carbon.apimgt.impl.factory.KeyManagerHolder;
 import org.wso2.carbon.apimgt.impl.soaptorest.SequenceGenerator;
 import org.wso2.carbon.apimgt.impl.soaptorest.util.SOAPOperationBindingUtils;
@@ -947,6 +946,38 @@ public class ApisApiServiceImpl implements ApisApiService {
             MessageContext messageContext) {
         // do some magic!
         return Response.ok().entity("magic!").build();
+    }
+
+    /**
+     * Get API monetization status and monetized tier to billing plan mapping
+     *
+     * @param apiId API ID
+     * @param messageContext message context
+     * @return API monetization status and monetized tier to billing plan mapping
+     */
+    @Override
+    public Response apisApiIdMonetizationGet(String apiId, MessageContext messageContext) {
+
+        try {
+            if (StringUtils.isBlank(apiId)) {
+                String errorMessage = "API ID cannot be empty or null when retrieving monetized plans.";
+                RestApiUtil.handleBadRequest(errorMessage, log);
+            }
+            APIProvider apiProvider = RestApiUtil.getLoggedInUserProvider();
+            String tenantDomain = RestApiUtil.getLoggedInUserTenantDomain();
+            APIIdentifier apiIdentifier = APIMappingUtil.getAPIIdentifierFromUUID(apiId, tenantDomain);
+            API api = apiProvider.getAPI(apiIdentifier);
+            Monetization monetizationImplementation = apiProvider.getMonetizationImplClass();
+            Map<String, String> monetizedPoliciesToPlanMapping = monetizationImplementation.
+                    getMonetizedPoliciesToPlanMapping(api);
+            APIMonetizationInfoDTO monetizationInfoDTO = APIMappingUtil.getMonetizedTiersDTO
+                    (apiIdentifier, monetizedPoliciesToPlanMapping);
+            return Response.ok().entity(monetizationInfoDTO).build();
+        } catch (APIManagementException e) {
+            String errorMessage = "Failed to retrieve monetized plans for API : " + apiId;
+            RestApiUtil.handleInternalServerError(errorMessage, log);
+        }
+        return Response.serverError().build();
     }
 
     /**

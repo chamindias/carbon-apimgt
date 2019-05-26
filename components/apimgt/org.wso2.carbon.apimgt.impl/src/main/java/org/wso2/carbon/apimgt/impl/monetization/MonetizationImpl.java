@@ -249,6 +249,30 @@ public class MonetizationImpl implements Monetization {
         return true;
     }
 
+
+    @Override
+    public Map<String, String> getMonetizedPoliciesToPlanMapping(API api) throws APIManagementException {
+
+        String apiName = api.getId().getApiName();
+        String apiVersion = api.getId().getVersion();
+        String apiProvider = api.getId().getProviderName();
+        String apiId = apiMgtDAO.getApiId(apiName, apiVersion, apiProvider);
+        if (StringUtils.isEmpty(apiId)) {
+            String errorMessage = "Failed to get ID of API : " + apiName;
+            APIUtil.handleException(errorMessage);
+        }
+        //get billing engine product ID for that API
+        String billingProductIdForApi = getBillingProductIdForApi(apiId);
+        if (StringUtils.isEmpty(billingProductIdForApi)) {
+            String errorMessage = "Failed to billing engine product ID for  : " + apiName;
+            APIUtil.handleException(errorMessage);
+        }
+        //get tier to billing engine plan mapping
+        Map<String, String> tierToBillingEnginePlanMap = apiMgtDAO.getTierToBillingEnginePlanMapping
+                (apiId, billingProductIdForApi);
+        return tierToBillingEnginePlanMap;
+    }
+
     @Override
     public boolean enableMonetization(String tenantDomain, API api, Map<String, String> monetizationProperties)
             throws APIManagementException {

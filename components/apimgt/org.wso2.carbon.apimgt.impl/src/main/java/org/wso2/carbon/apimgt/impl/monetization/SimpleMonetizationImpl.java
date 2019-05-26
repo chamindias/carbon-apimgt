@@ -23,6 +23,7 @@ import org.wso2.carbon.apimgt.api.model.Monetization;
 import org.wso2.carbon.apimgt.api.model.policy.SubscriptionPolicy;
 import org.wso2.carbon.apimgt.api.APIManagementException;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class SimpleMonetizationImpl implements Monetization {
@@ -52,5 +53,10 @@ public class SimpleMonetizationImpl implements Monetization {
     public boolean disableMonetization(String tenantDomain, API api, Map<String, String> monetizationProperties)
             throws APIManagementException {
         return true;
+    }
+
+    @Override
+    public Map<String, String> getMonetizedPoliciesToPlanMapping(API api) throws APIManagementException {
+        return new HashMap<>();
     }
 }
