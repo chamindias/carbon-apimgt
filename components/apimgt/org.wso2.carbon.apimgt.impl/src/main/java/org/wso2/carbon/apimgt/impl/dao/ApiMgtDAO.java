@@ -9649,6 +9649,35 @@ public class ApiMgtDAO {
     }
 
     /**
+     *
+     *
+     * @param tierUUID
+     * @return
+     * @throws APIManagementException
+     */
+    public  String getBillingPlanId(String tierUUID) throws APIManagementException {
+
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        String planId = null;
+        try {
+            conn = APIMgtDBUtil.getConnection();
+            ps = conn.prepareStatement(SQLConstants.GET_BILLING_PLAN_ID);
+            ps.setString(1, tierUUID);
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                planId = rs.getString("PLAN_ID");
+            }
+        } catch (SQLException e) {
+            handleException("Error while getting plan ID for tier UUID : " + tierUUID , e);
+        } finally {
+            APIMgtDBUtil.closeAllConnections(ps, conn, rs);
+        }
+        return planId;
+    }
+
+    /**
      * Add subscription policy monetization data to the database
      *
      * @param policy subscription policy
@@ -9709,9 +9738,9 @@ public class ApiMgtDAO {
                 initialAutoCommit = connection.getAutoCommit();
                 connection.setAutoCommit(false);
                 for (Map.Entry<String, String> entry : tierPlanMap.entrySet()) {
-                    preparedStatement.setString(1, apiId);
-                    preparedStatement.setString(2, productId);
-                    preparedStatement.setString(3, entry.getKey());
+                    preparedStatement.setInt(1, Integer.parseInt(apiId));
+                    preparedStatement.setString(2, entry.getKey());
+                    preparedStatement.setString(3, productId);
                     preparedStatement.setString(4, entry.getValue());
                     preparedStatement.addBatch();
                 }
@@ -9739,20 +9768,21 @@ public class ApiMgtDAO {
      * @param stripeProductId stripe product ID
      * @return mapping between tier and stripe plans
      */
-    public Map<String, String> getStripePlanMap(String apiID, String stripeProductId) throws APIManagementException {
+    public Map<String, String> getTierToBillingEnginePlanMapping(String apiID, String stripeProductId)
+            throws APIManagementException {
 
         Map<String, String> stripePlanTierMap = new HashMap<String, String>();
         Connection connection = null;
         PreparedStatement statement = null;
         try {
             connection = APIMgtDBUtil.getConnection();
-            statement = connection.prepareStatement(SQLConstants.GET_PLANS_BY_API_STRIPE_PRODUCT);
-            statement.setString(1, apiID);
+            statement = connection.prepareStatement(SQLConstants.GET_BILLING_PLANS_BY_PRODUCT);
+            statement.setInt(1, Integer.parseInt(apiID));
             statement.setString(2, stripeProductId);
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
                 String tierName = rs.getString("TIER_NAME");
-                String stripePlanId = rs.getString("STRIPE_PLAN_ID");
+                String stripePlanId = rs.getString("PLAN_ID");
                 stripePlanTierMap.put(tierName, stripePlanId);
             }
             connection.commit();
@@ -9764,6 +9794,36 @@ public class ApiMgtDAO {
         return stripePlanTierMap;
     }
 
+    /**
+     * Get billing plan ID for a given tier
+     *
+     * @param apiID API ID
+     * @param tierName tier name
+     * @return billing plan ID for a given tier
+     * @throws APIManagementException if failed to get billing plan ID for a given tier
+     */
+    public String getBillingEnginePlanIdForTier(String apiID, String tierName) throws APIManagementException {
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+        String billingEnginePlanId = "";
+        try {
+            connection = APIMgtDBUtil.getConnection();
+            statement = connection.prepareStatement(SQLConstants.GET_BILLING_PLAN_FOR_TIER);
+            statement.setInt(1, Integer.parseInt(apiID));
+            statement.setString(2, tierName);
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                billingEnginePlanId = rs.getString("PLAN_ID");
+            }
+            connection.commit();
+        } catch (SQLException e) {
+            handleException("Failed to get billing plan ID tier : " + tierName, e);
+        } finally {
+            APIMgtDBUtil.closeAllConnections(statement, connection, null);
+        }
+        return billingEnginePlanId;
+    }
 
     /**
      * This method is used to fetch the API ID in AM_API table
@@ -9803,26 +9863,26 @@ public class ApiMgtDAO {
      * @param apiId API ID
      * @return billing engine product ID of the give API
      */
-    public String getStripeProductId(String apiId) throws APIManagementException {
+    public String getBillingEngineProductId(String apiId) throws APIManagementException {
 
-        String stripeProductId = null;
+        String billingEngineProductId = null;
         Connection connection = null;
         PreparedStatement statement = null;
         try {
             connection = APIMgtDBUtil.getConnection();
-            statement = connection.prepareStatement(SQLConstants.GET_STRIPE_PRODUCT_BY_API);
-            statement.setString(1, apiId);
+            statement = connection.prepareStatement(SQLConstants.GET_BILLING_ENGINE_PRODUCT_BY_API);
+            statement.setInt(1, Integer.parseInt(apiId));
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
-                stripeProductId = rs.getString("STRIPE_PRODUCT_ID");
+                billingEngineProductId = rs.getString("PRODUCT_ID");
             }
             connection.commit();
         } catch (SQLException e) {
-            handleException("Failed to get stripe product ID of API : " + apiId, e);
+            handleException("Failed to get billing engine product ID of API : " + apiId, e);
         } finally {
             APIMgtDBUtil.closeAllConnections(statement, connection, null);
         }
-        return stripeProductId;
+        return billingEngineProductId;
     }
 
     /**
@@ -9831,18 +9891,18 @@ public class ApiMgtDAO {
      * @param apiId API ID
      * @return plan IDs (in billing engine) list for the given API
      */
-    public List<String> getStripePlanIdListOfApi(String apiId) throws APIManagementException {
+    public List<String> getBillingEnginePlanIdListOfApi(String apiId) throws APIManagementException {
 
         List<String> stripePlanIdList = new ArrayList<String>();
         Connection connection = null;
         PreparedStatement statement = null;
         try {
             connection = APIMgtDBUtil.getConnection();
-            statement = connection.prepareStatement(SQLConstants.GET_STRIPE_PLANS_BY_API);
-            statement.setString(1, apiId);
+            statement = connection.prepareStatement(SQLConstants.GET_BILLING_ENGINE_PLANS_BY_API);
+            statement.setInt(1, Integer.parseInt(apiId));
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
-                stripePlanIdList.add(rs.getString("STRIPE_PLAN_ID"));
+                stripePlanIdList.add(rs.getString("PLAN_ID"));
             }
             connection.commit();
         } catch (SQLException e) {
@@ -9869,7 +9929,7 @@ public class ApiMgtDAO {
             statement = connection.prepareStatement(SQLConstants.DELETE_MONETIZATION_DATA_SQL);
             initialAutoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
-            statement.setString(1, apiId);
+            statement.setInt(1, Integer.parseInt(apiId));
             statement.executeUpdate();
             connection.commit();
         } catch (SQLException e) {

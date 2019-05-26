@@ -39,22 +39,21 @@ import org.json.simple.parser.ParseException;
 import org.wso2.carbon.apimgt.api.APIManagementException;
 import org.wso2.carbon.apimgt.impl.dao.ApiMgtDAO;
 import org.wso2.carbon.apimgt.impl.utils.APIUtil;
-import org.wso2.carbon.apimgt.impl.utils.TierNameComparator;
 import org.wso2.carbon.registry.core.Registry;
 import org.wso2.carbon.registry.core.Resource;
 import org.wso2.carbon.registry.core.exceptions.RegistryException;
 import org.wso2.carbon.user.api.UserStoreException;
+
 import java.nio.charset.Charset;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 
 public class MonetizationImpl implements Monetization {
 
     private static final Log log = LogFactory.getLog(MonetizationImpl.class);
+    ApiMgtDAO apiMgtDAO = ApiMgtDAO.getInstance();
 
     @Override
     public boolean createBillingPlan(SubscriptionPolicy subPolicy)
@@ -103,8 +102,6 @@ public class MonetizationImpl implements Monetization {
                         " in " + subPolicy.getTenantDomain();
                 APIUtil.handleException(errorMessage);
             }
-            ApiMgtDAO apiMgtDAO = ApiMgtDAO.getInstance();
-            //apiMgtDAO.addSubscriptionPolicyMonetizationData(subPolicy, monetizationPlan, monetizationPlanProperties);
             apiMgtDAO.addMonetizationPlanData(subPolicy, productId, createdPlanId);
             return true;
         } catch (StripeException e) {
@@ -117,7 +114,6 @@ public class MonetizationImpl implements Monetization {
     @Override
     public boolean updateBillingPlan(SubscriptionPolicy subPolicy) throws APIManagementException {
 
-        ApiMgtDAO apiMgtDAO = ApiMgtDAO.getInstance();
         Map<String, String> planData = apiMgtDAO.getPlanData(subPolicy);
         String oldProductId = null, oldPlanId = null, newProductId = null, updatedPlanId = null;
         //read tenant-conf.json and get platform account key
@@ -166,23 +162,21 @@ public class MonetizationImpl implements Monetization {
             planParams.put(APIConstants.CURRENCY, APIConstants.USD);
             if (StringUtils.isNotBlank(oldProductId)) {
                 planParams.put(APIConstants.PRODUCT, oldProductId);
-
             }
             if (StringUtils.isNotBlank(newProductId)) {
                 planParams.put(APIConstants.PRODUCT, newProductId);
-
             }
             planParams.put(APIConstants.PRODUCT_NICKNAME, subPolicy.getPolicyName());
             planParams.put(APIConstants.INTERVAL, subPolicy.getMonetizationPlanProperties().
                     get(APIConstants.BILLING_CYCLE));
-
             if (APIConstants.FIXED_RATE.equalsIgnoreCase(subPolicy.getMonetizationPlan())) {
                 int amount = Integer.parseInt(subPolicy.getMonetizationPlanProperties().get(APIConstants.FIXED_PRICE));
                 planParams.put(APIConstants.AMOUNT, amount);
                 planParams.put(APIConstants.USAGE_TYPE, APIConstants.LICENSED_USAGE);
             }
             if (APIConstants.DYNAMIC_RATE.equalsIgnoreCase(subPolicy.getMonetizationPlan())) {
-                int amount = Integer.parseInt(subPolicy.getMonetizationPlanProperties().get(APIConstants.PRICE_PER_REQUEST));
+                int amount = Integer.parseInt(subPolicy.getMonetizationPlanProperties().
+                        get(APIConstants.PRICE_PER_REQUEST));
                 planParams.put(APIConstants.AMOUNT, amount);
                 planParams.put(APIConstants.USAGE_TYPE, APIConstants.METERED_USAGE);
             }
@@ -204,7 +198,6 @@ public class MonetizationImpl implements Monetization {
                         " in " + subPolicy.getTenantDomain();
                 APIUtil.handleException(errorMessage);
             }
-
         } else if (APIConstants.BILLING_PLAN_FREE.equalsIgnoreCase(subPolicy.getBillingPlan())) {
             //If updated to a free plan (from a commercial plan), no need to create any plan in the billing engine
             //Hence delete DB record
@@ -233,7 +226,6 @@ public class MonetizationImpl implements Monetization {
     @Override
     public boolean deleteBillingPlan(SubscriptionPolicy subPolicy) throws APIManagementException {
 
-        ApiMgtDAO apiMgtDAO = ApiMgtDAO.getInstance();
         //get old plan (if any) in the billing engine and delete
         Map<String, String> planData = apiMgtDAO.getPlanData(subPolicy);
         if (MapUtils.isEmpty(planData)) {
@@ -261,35 +253,188 @@ public class MonetizationImpl implements Monetization {
     public boolean enableMonetization(String tenantDomain, API api, Map<String, String> monetizationProperties)
             throws APIManagementException {
 
+        //read tenant conf and get platform account key
+        String platformAccountKey = getStripePlatformAccountKey(tenantDomain);
+        String connectedAccountKey = StringUtils.EMPTY;
 
+        //get api publisher's stripe key (i.e - connected account key) from monetization properties in request payload
+        if (MapUtils.isNotEmpty(monetizationProperties) &&
+                monetizationProperties.containsKey(APIConstants.BILLING_ENGINE_CONNECTED_ACCOUNT_KEY)) {
+            connectedAccountKey = monetizationProperties.get
+                    (APIConstants.BILLING_ENGINE_CONNECTED_ACCOUNT_KEY);
+            if (StringUtils.isBlank(connectedAccountKey)) {
+                String errorMessage = "Connected account stripe key was not found for API : " + api.getId().getApiName();
+                APIUtil.handleException(errorMessage);
+            }
+        } else {
+            String errorMessage = "Stripe key of the connected account is empty.";
+            APIUtil.handleException(errorMessage);
+        }
+        String apiName = api.getId().getApiName();
+        String apiVersion = api.getId().getVersion();
+        String apiProvider = api.getId().getProviderName();
+        String apiId = apiMgtDAO.getApiId(apiName, apiVersion, apiProvider);
+        String billingProductIdForApi = getBillingProductIdForApi(apiId);
+        //create billing engine product if it does not exist
+        if (StringUtils.isEmpty(billingProductIdForApi)) {
+            Stripe.apiKey = platformAccountKey;
+            Map<String, Object> productParams = new HashMap<String, Object>();
+            String stripeProductName = apiName + "-" + apiVersion + "-" + apiProvider;
+            productParams.put(APIConstants.POLICY_NAME_ELEM, stripeProductName);
+            productParams.put(APIConstants.TYPE, APIConstants.SERVICE_TYPE);
+            RequestOptions productRequestOptions = RequestOptions.builder().setStripeAccount(connectedAccountKey).build();
+            try {
+                Product product = Product.create(productParams, productRequestOptions);
+                billingProductIdForApi = product.getId();
+            } catch (StripeException e) {
+                APIUtil.handleException("Unable to create product in billing engine for : " + apiName, e);
+            }
+        }
+        Map<String, String> tierPlanMap = new HashMap<>();
+        //scan for commercial tiers and add add plans in the billing engine if needed
+        for (Tier currentTier : api.getAvailableTiers()) {
+            if (APIConstants.COMMERCIAL_TIER_PLAN.equalsIgnoreCase(currentTier.getTierPlan())) {
+                String billingPlanId = getBillingPlanIdOfTier(apiId, currentTier.getName());
+                if (StringUtils.isBlank(billingPlanId)) {
+                    int tenantId = APIUtil.getTenantId(apiProvider);
+                    String createdPlanId = createBillingPlanForCommercialTier(currentTier, tenantId, platformAccountKey,
+                            connectedAccountKey, billingProductIdForApi);
+                    if (StringUtils.isNotBlank(createdPlanId)) {
+                        log.debug("Billing plan : " + createdPlanId + " successfully created for : " +
+                                currentTier.getName());
+                        tierPlanMap.put(currentTier.getName(), createdPlanId);
+                    } else {
+                        log.debug("Failed to create billing plan for : " + currentTier.getName());
+                    }
+                }
+            }
+        }
+        //save data in the database - only if there is a stripe product and newly created plans
+        if (StringUtils.isNotBlank(billingProductIdForApi) && MapUtils.isNotEmpty(tierPlanMap)) {
+            apiMgtDAO.addMonetizationData(apiId, billingProductIdForApi, tierPlanMap);
+        }
+        return true;
+    }
 
+    /**
+     * Get billing product ID for a given API
+     *
+     * @param apiId API ID
+     * @return  billing product ID for the given API
+     * @throws APIManagementException if failed to get billing product ID for the given API
+     */
+    private String getBillingProductIdForApi(String apiId) throws APIManagementException {
 
+        String billingProductId = StringUtils.EMPTY;
+        billingProductId = apiMgtDAO.getBillingEngineProductId(apiId);
+        return billingProductId;
+    }
 
-        return false;
+    /**
+     * Get billing plan ID for a given tier
+     *
+     * @param apiId API ID
+     * @param tierName tier name
+     * @return billing plan ID for a given tier
+     * @throws APIManagementException if failed to get billing plan ID for the given tier
+     */
+    private String getBillingPlanIdOfTier(String apiId, String tierName) throws APIManagementException {
 
+        String billingPlanId = StringUtils.EMPTY;
+        billingPlanId = apiMgtDAO.getBillingEnginePlanIdForTier(apiId, tierName);
+        return billingPlanId;
+    }
 
+    /**
+     * Create billing plan for a given commercial tier
+     *
+     * @param tier tier
+     * @param tenantId tenant ID
+     * @param platformAccountKey billing engine platform account key
+     * @param connectedAccountKey billing engine connected account key
+     * @param billingProductId billing engine product ID
+     * @return created plan ID in billing engine
+     * @throws APIManagementException if fails to create billing plan
+     */
+    private String createBillingPlanForCommercialTier(Tier tier, int tenantId, String platformAccountKey,
+                                                      String connectedAccountKey, String billingProductId)
+            throws APIManagementException {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        String tierUUID = apiMgtDAO.getSubscriptionPolicy(tier.getName(), tenantId).getUUID();
+        //get plan ID from mapping table
+        String planId = apiMgtDAO.getBillingPlanId(tierUUID);
+        Stripe.apiKey = platformAccountKey;
+        try {
+            //get that plan details
+            Plan billingPlan = Plan.retrieve(planId);
+            //get the values from that plan and replicate it
+            Map<String, Object> planParams = new HashMap<String, Object>();
+            planParams.put(APIConstants.AMOUNT, billingPlan.getAmount());
+            planParams.put(APIConstants.BILLING_SCHEME, billingPlan.getBillingScheme());
+            planParams.put(APIConstants.INTERVAL, billingPlan.getInterval());
+            planParams.put(APIConstants.PRODUCT_NICKNAME, billingPlan.getNickname());
+            planParams.put(APIConstants.PRODUCT, billingProductId);
+            planParams.put(APIConstants.CURRENCY, billingPlan.getCurrency());
+            planParams.put(APIConstants.USAGE_TYPE, billingPlan.getUsageType());
+            RequestOptions planRequestOptions = RequestOptions.builder().setStripeAccount(connectedAccountKey).build();
+            //create a new stripe plan for the tier
+            Plan createdPlan = Plan.create(planParams, planRequestOptions);
+            return createdPlan.getId();
+        } catch (StripeException e) {
+            APIUtil.handleException("Unable to create billing plan for : " + tier.getName(), e);
+        }
+        return StringUtils.EMPTY;
     }
 
     @Override
     public boolean disableMonetization(String tenantDomain, API api, Map<String, String> monetizationProperties)
             throws APIManagementException {
 
+        //read tenant conf and get platform account key
+        String platformAccountKey = getStripePlatformAccountKey(tenantDomain);
+        String connectedAccountKey = StringUtils.EMPTY;
+
+        //get api publisher's stripe key (i.e - connected account key) from monetization properties in request payload
+        if (MapUtils.isNotEmpty(monetizationProperties) &&
+                monetizationProperties.containsKey(APIConstants.BILLING_ENGINE_CONNECTED_ACCOUNT_KEY)) {
+            connectedAccountKey = monetizationProperties.get
+                    (APIConstants.BILLING_ENGINE_CONNECTED_ACCOUNT_KEY);
+            if (StringUtils.isBlank(connectedAccountKey)) {
+                String errorMessage = "Billing engine connected account key was not found for API : " +
+                        api.getId().getApiName();
+                APIUtil.handleException(errorMessage);
+            }
+        } else {
+            String errorMessage = "Stripe key of the connected account is empty.";
+            APIUtil.handleException(errorMessage);
+        }
+        String apiName = api.getId().getApiName();
+        String apiVersion = api.getId().getVersion();
+        String apiProvider = api.getId().getProviderName();
+        String apiId = apiMgtDAO.getApiId(apiName, apiVersion, apiProvider);
+        String billingProductIdForApi = getBillingProductIdForApi(apiId);
+        Map<String, String> tierToBillingEnginePlanMap = apiMgtDAO.getTierToBillingEnginePlanMapping
+                (apiId, billingProductIdForApi);
+        Stripe.apiKey = platformAccountKey;
+        RequestOptions requestOptions = RequestOptions.builder().setStripeAccount(connectedAccountKey).build();
+        try {
+            for (Map.Entry<String, String> entry : tierToBillingEnginePlanMap.entrySet()) {
+                String planId = entry.getValue();
+                Plan plan = Plan.retrieve(planId, requestOptions);
+                plan.delete(requestOptions);
+                log.debug("Successfully deleted billing plan : " + planId + " of tier : " + entry.getKey());
+            }
+            //after deleting all the associated plans, then delete the product
+            Product product = Product.retrieve(billingProductIdForApi, requestOptions);
+            product.delete(requestOptions);
+            log.debug("Successfully deleted billing product : " + billingProductIdForApi + " of API : " + apiName);
+            //after deleting plans and the product, clean the database records
+            apiMgtDAO.deleteMonetizationData(apiId);
+            log.debug("Successfully deleted monetization database records for API : " + apiName);
+        } catch (StripeException e) {
+            String errorMessage = "Failed to delete products and plans in the billing engine.";
+            APIUtil.handleException(errorMessage, e);
+        }
         return true;
     }
 

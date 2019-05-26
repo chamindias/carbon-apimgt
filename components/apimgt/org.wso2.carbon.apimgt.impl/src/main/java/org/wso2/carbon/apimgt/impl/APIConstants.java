@@ -378,6 +378,7 @@ public final class APIConstants {
     public static final String TYPE = "type";
     public static final String SERVICE_TYPE = "service";
     public static final String CURRENCY = "currency";
+    public static final String BILLING_SCHEME = "billing_scheme";
     public static final String USD = "usd";
     public static final String PRODUCT = "product";
     public static final String PRODUCT_NICKNAME = "nickname";
@@ -398,8 +399,8 @@ public final class APIConstants {
     public static final String API_MONETIZATION_STATUS = "isMonetizationEnabled";
     public static final String API_MONETIZATION_PROPERTIES = "monetizationProperties";
     public static final String MONETIZATION_INFO = "MonetizationInfo";
-    public static final String BILLING_ENGINE_PLATFORM_ACCOUNT_KEY = "PlatformAccountStripeKey";
-    public static final String BILLING_ENGINE_CONNECTED_ACCOUNT_KEY = "ConnectedAccountStripeKey";
+    public static final String BILLING_ENGINE_PLATFORM_ACCOUNT_KEY = "BillingEnginePlatformAccountKey";
+    public static final String BILLING_ENGINE_CONNECTED_ACCOUNT_KEY = "ConnectedAccountKey";
 
     //documentation rxt
 
