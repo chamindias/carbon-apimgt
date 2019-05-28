@@ -18,6 +18,8 @@
 
 package org.wso2.carbon.apimgt.impl.monetization;
 
+import org.json.simple.JSONObject;
+import org.wso2.carbon.apimgt.api.APIProvider;
 import org.wso2.carbon.apimgt.api.model.API;
 import org.wso2.carbon.apimgt.api.model.Monetization;
 import org.wso2.carbon.apimgt.api.model.policy.SubscriptionPolicy;
@@ -57,6 +59,12 @@ public class SimpleMonetizationImpl implements Monetization {
 
     @Override
     public Map<String, String> getMonetizedPoliciesToPlanMapping(API api) throws APIManagementException {
+        return new HashMap<>();
+    }
+
+    @Override
+    public Map<String,String> getCurrentUsage(String subscriptionUUID, APIProvider apiProvider)
+            throws APIManagementException {
         return new HashMap<>();
     }
 }

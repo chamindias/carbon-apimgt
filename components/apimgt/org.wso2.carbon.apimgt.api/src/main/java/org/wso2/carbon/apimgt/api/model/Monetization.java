@@ -18,7 +18,9 @@
 
 package org.wso2.carbon.apimgt.api.model;
 
+import org.json.simple.JSONObject;
 import org.wso2.carbon.apimgt.api.APIManagementException;
+import org.wso2.carbon.apimgt.api.APIProvider;
 import org.wso2.carbon.apimgt.api.model.policy.SubscriptionPolicy;
 
 import java.util.Map;
@@ -84,4 +86,15 @@ public interface Monetization {
      * @throws APIManagementException if failed to get tier to billing plan mapping
      */
     Map<String,String> getMonetizedPoliciesToPlanMapping(API api) throws APIManagementException;
+
+    /**
+     * Get current usage for a subscription
+     *
+     * @param subscriptionUUID subscription UUID
+     * @param apiProvider API provider
+     * @return current usage for a subscription
+     * @throws APIManagementException if failed to get current usage for a subscription
+     */
+    Map<String,String> getCurrentUsage (String subscriptionUUID, APIProvider apiProvider) throws APIManagementException;
+
 }

@@ -9726,7 +9726,7 @@ public class ApiMgtDAO {
      * @param tierPlanMap stripe plan and tier mapping
      * @throws APIManagementException if failed to add monetization data to the DB
      */
-    public void addMonetizationData(String apiId, String productId, Map<String, String> tierPlanMap)
+    public void addMonetizationData(int apiId, String productId, Map<String, String> tierPlanMap)
             throws APIManagementException {
 
         PreparedStatement preparedStatement = null;
@@ -9738,7 +9738,7 @@ public class ApiMgtDAO {
                 initialAutoCommit = connection.getAutoCommit();
                 connection.setAutoCommit(false);
                 for (Map.Entry<String, String> entry : tierPlanMap.entrySet()) {
-                    preparedStatement.setInt(1, Integer.parseInt(apiId));
+                    preparedStatement.setInt(1, apiId);
                     preparedStatement.setString(2, entry.getKey());
                     preparedStatement.setString(3, productId);
                     preparedStatement.setString(4, entry.getValue());
@@ -9768,7 +9768,7 @@ public class ApiMgtDAO {
      * @param stripeProductId stripe product ID
      * @return mapping between tier and stripe plans
      */
-    public Map<String, String> getTierToBillingEnginePlanMapping(String apiID, String stripeProductId)
+    public Map<String, String> getTierToBillingEnginePlanMapping(int apiID, String stripeProductId)
             throws APIManagementException {
 
         Map<String, String> stripePlanTierMap = new HashMap<String, String>();
@@ -9777,7 +9777,7 @@ public class ApiMgtDAO {
         try {
             connection = APIMgtDBUtil.getConnection();
             statement = connection.prepareStatement(SQLConstants.GET_BILLING_PLANS_BY_PRODUCT);
-            statement.setInt(1, Integer.parseInt(apiID));
+            statement.setInt(1, apiID);
             statement.setString(2, stripeProductId);
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
@@ -9802,7 +9802,7 @@ public class ApiMgtDAO {
      * @return billing plan ID for a given tier
      * @throws APIManagementException if failed to get billing plan ID for a given tier
      */
-    public String getBillingEnginePlanIdForTier(String apiID, String tierName) throws APIManagementException {
+    public String getBillingEnginePlanIdForTier(int apiID, String tierName) throws APIManagementException {
 
         Connection connection = null;
         PreparedStatement statement = null;
@@ -9810,7 +9810,7 @@ public class ApiMgtDAO {
         try {
             connection = APIMgtDBUtil.getConnection();
             statement = connection.prepareStatement(SQLConstants.GET_BILLING_PLAN_FOR_TIER);
-            statement.setInt(1, Integer.parseInt(apiID));
+            statement.setInt(1, apiID);
             statement.setString(2, tierName);
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
@@ -9858,12 +9858,25 @@ public class ApiMgtDAO {
     }
 
     /**
+     * Get Billing Engine Subscription ID
+     *
+     * @param apiId API ID
+     * @param subscriptionId Subscription ID
+     * @return Billing Engine Subscription ID
+     * @throws APIManagementException If Failed To Get Billing Engine Subscription ID
+     */
+    public String getBillingEngineSubscriptionId(int apiId, int subscriptionId) throws APIManagementException {
+        //todo
+        return "sub_F8xuvHVErFFZOT";
+    }
+
+    /**
      * This method is used to get the product id in the billing engine for a give API
      *
      * @param apiId API ID
      * @return billing engine product ID of the give API
      */
-    public String getBillingEngineProductId(String apiId) throws APIManagementException {
+    public String getBillingEngineProductId(int apiId) throws APIManagementException {
 
         String billingEngineProductId = null;
         Connection connection = null;
@@ -9871,7 +9884,7 @@ public class ApiMgtDAO {
         try {
             connection = APIMgtDBUtil.getConnection();
             statement = connection.prepareStatement(SQLConstants.GET_BILLING_ENGINE_PRODUCT_BY_API);
-            statement.setInt(1, Integer.parseInt(apiId));
+            statement.setInt(1, apiId);
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
                 billingEngineProductId = rs.getString("PRODUCT_ID");
@@ -9920,7 +9933,7 @@ public class ApiMgtDAO {
      * @param apiId API ID
      * @throws APIManagementException if failed to delete monetization data
      */
-    public void deleteMonetizationData(String apiId) throws APIManagementException {
+    public void deleteMonetizationData(int apiId) throws APIManagementException {
 
         Connection connection = null;
         PreparedStatement statement = null;
@@ -9929,7 +9942,7 @@ public class ApiMgtDAO {
             statement = connection.prepareStatement(SQLConstants.DELETE_MONETIZATION_DATA_SQL);
             initialAutoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
-            statement.setInt(1, Integer.parseInt(apiId));
+            statement.setInt(1, apiId);
             statement.executeUpdate();
             connection.commit();
         } catch (SQLException e) {

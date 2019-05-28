@@ -18,8 +18,14 @@
 
 package org.wso2.carbon.apimgt.impl.monetization;
 
+import com.google.gson.Gson;
+import com.stripe.model.Invoice;
+import com.stripe.model.Subscription;
+import org.wso2.carbon.apimgt.api.APIProvider;
 import org.wso2.carbon.apimgt.api.model.API;
+import org.wso2.carbon.apimgt.api.model.APIIdentifier;
 import org.wso2.carbon.apimgt.api.model.Monetization;
+import org.wso2.carbon.apimgt.api.model.SubscribedAPI;
 import org.wso2.carbon.apimgt.api.model.Tier;
 import org.wso2.carbon.apimgt.api.model.policy.SubscriptionPolicy;
 import org.wso2.carbon.apimgt.impl.APIConstants;
@@ -43,6 +49,7 @@ import org.wso2.carbon.registry.core.Registry;
 import org.wso2.carbon.registry.core.Resource;
 import org.wso2.carbon.registry.core.exceptions.RegistryException;
 import org.wso2.carbon.user.api.UserStoreException;
+import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.nio.charset.Charset;
 import java.sql.Timestamp;
@@ -254,13 +261,7 @@ public class MonetizationImpl implements Monetization {
     public Map<String, String> getMonetizedPoliciesToPlanMapping(API api) throws APIManagementException {
 
         String apiName = api.getId().getApiName();
-        String apiVersion = api.getId().getVersion();
-        String apiProvider = api.getId().getProviderName();
-        String apiId = apiMgtDAO.getApiId(apiName, apiVersion, apiProvider);
-        if (StringUtils.isEmpty(apiId)) {
-            String errorMessage = "Failed to get ID of API : " + apiName;
-            APIUtil.handleException(errorMessage);
-        }
+        int apiId  = apiMgtDAO.getAPIID(api.getId(), null);
         //get billing engine product ID for that API
         String billingProductIdForApi = getBillingProductIdForApi(apiId);
         if (StringUtils.isEmpty(billingProductIdForApi)) {
@@ -271,6 +272,110 @@ public class MonetizationImpl implements Monetization {
         Map<String, String> tierToBillingEnginePlanMap = apiMgtDAO.getTierToBillingEnginePlanMapping
                 (apiId, billingProductIdForApi);
         return tierToBillingEnginePlanMap;
+    }
+
+    @Override
+    public Map<String, String> getCurrentUsage(String subscriptionUUID, APIProvider apiProvider)
+            throws APIManagementException {
+
+        SubscribedAPI subscribedAPI = apiMgtDAO.getSubscriptionByUUID(subscriptionUUID);
+        Map<String, String> billingEngineUsageData = new HashMap<String, String>();
+        APIIdentifier apiIdentifier = subscribedAPI.getApiId();
+        API api = apiProvider.getAPI(apiIdentifier);
+        String apiName = apiIdentifier.getApiName();
+
+        if (api.getMonetizationProperties() == null) {
+            String errorMessage = "Monetization properties are empty for API : " + apiName;
+            APIUtil.handleException(errorMessage);
+        }
+        HashMap monetizationDataMap = new Gson().fromJson(api.getMonetizationProperties().toString(), HashMap.class);
+        if (MapUtils.isEmpty(monetizationDataMap)) {
+            String errorMessage = "Monetization data map is empty for API : " + apiName;
+            APIUtil.handleException(errorMessage);
+        }
+        String tenantDomain = MultitenantUtils.getTenantDomain(apiIdentifier.getProviderName());
+        //get billing engine platform account key
+        String platformAccountKey = getStripePlatformAccountKey(tenantDomain);
+        try {
+            if (monetizationDataMap.containsKey(APIConstants.BILLING_ENGINE_CONNECTED_ACCOUNT_KEY)) {
+                String connectedAccountKey = monetizationDataMap.get
+                        (APIConstants.BILLING_ENGINE_CONNECTED_ACCOUNT_KEY).toString();
+                if (StringUtils.isBlank(connectedAccountKey)) {
+                    String errorMessage = "Connected account stripe key was not found for API : " + apiName;
+                    APIUtil.handleException(errorMessage);
+                }
+                Stripe.apiKey = platformAccountKey;
+                //create request options to link with the connected account
+                RequestOptions requestOptions = RequestOptions.builder().setStripeAccount(connectedAccountKey).build();
+                int apiId = apiMgtDAO.getAPIID(apiIdentifier, null);
+                int subscriptionId = subscribedAPI.getSubscriptionId();
+                String billingPlanSubscriptionId = apiMgtDAO.getBillingEngineSubscriptionId(apiId, subscriptionId);
+                Subscription billingEngineSubscription = Subscription.retrieve(billingPlanSubscriptionId, requestOptions);
+                if (billingEngineSubscription == null) {
+                    String errorMessage = "No billing engine subscription was found for API : " + apiName;
+                    APIUtil.handleException(errorMessage);
+                }
+                //upcoming invoice is only applicable for metered usage (i.e - dynamic usage)
+                if (!APIConstants.METERED_USAGE.equalsIgnoreCase(billingEngineSubscription.getPlan().getUsageType())) {
+                    String errorMessage = "Usage type should be set to 'metered' to get the pending bill.";
+                    APIUtil.handleException(errorMessage);
+                }
+                Map<String, Object> invoiceParams = new HashMap<String, Object>();
+                invoiceParams.put("subscription", billingEngineSubscription.getId());
+                //fetch the upcoming invoice
+                Invoice invoice = Invoice.upcoming(invoiceParams, requestOptions);
+                if (invoice == null) {
+                    String errorMessage = "No billing engine subscription was found for : " + apiName;
+                    APIUtil.handleException(errorMessage);
+                }
+                //the below parameters are billing engine specific
+                billingEngineUsageData.put("invoice_id", invoice.getId());
+                billingEngineUsageData.put("object", "invoice");
+                billingEngineUsageData.put("account_country", invoice.getAccountCountry());
+                billingEngineUsageData.put("account_name", invoice.getAccountName());
+                billingEngineUsageData.put("amount_due", invoice.getAmountDue().toString());
+                billingEngineUsageData.put("amount_paid", invoice.getAmountPaid().toString());
+                billingEngineUsageData.put("amount_remaining", invoice.getAmountRemaining().toString());
+                billingEngineUsageData.put("application_fee_amount", invoice.getApplicationFeeAmount().toString());
+                billingEngineUsageData.put("attempt_count", invoice.getAttemptCount().toString());
+                billingEngineUsageData.put("attempted", invoice.getAttempted().toString());
+                billingEngineUsageData.put("billing", invoice.getBilling());
+                billingEngineUsageData.put("billing_reason", invoice.getBillingReason());
+                billingEngineUsageData.put("charge", invoice.getCharge());
+                billingEngineUsageData.put("created", invoice.getCreated().toString());
+                billingEngineUsageData.put("currency", invoice.getCurrency());
+                billingEngineUsageData.put("customer", invoice.getCustomer());
+                billingEngineUsageData.put("customer_address", invoice.getCustomerAddress().toString());
+                billingEngineUsageData.put("customer_email", invoice.getCustomerEmail());
+                billingEngineUsageData.put("customer_name", invoice.getCustomerName());
+                billingEngineUsageData.put("description", invoice.getDescription());
+                billingEngineUsageData.put("due_date", invoice.getDueDate().toString());
+                billingEngineUsageData.put("ending_balance", invoice.getEndingBalance().toString());
+                billingEngineUsageData.put("livemode", invoice.getLivemode().toString());
+                billingEngineUsageData.put("next_payment_attempt", invoice.getNextPaymentAttempt().toString());
+                billingEngineUsageData.put("number", invoice.getNumber());
+                billingEngineUsageData.put("paid", invoice.getPaid().toString());
+                billingEngineUsageData.put("payment_intent", invoice.getPaymentIntent());
+                billingEngineUsageData.put("period_end", invoice.getPeriodEnd().toString());
+                billingEngineUsageData.put("period_start", invoice.getPeriodStart().toString());
+                billingEngineUsageData.put("post_payment_credit_notes_amount",
+                        invoice.getPostPaymentCreditNotesAmount().toString());
+                billingEngineUsageData.put("pre_payment_credit_notes_amount",
+                        invoice.getPrePaymentCreditNotesAmount().toString());
+                billingEngineUsageData.put("receipt_number", invoice.getReceiptNumber());
+                billingEngineUsageData.put("subscription", invoice.getSubscription());
+                billingEngineUsageData.put("subtotal", invoice.getSubtotal().toString());
+                billingEngineUsageData.put("tax", invoice.getTax().toString());
+                billingEngineUsageData.put("tax_percent", invoice.getTaxPercent().toString());
+                billingEngineUsageData.put("total", invoice.getTotal().toString());
+                billingEngineUsageData.put("total_tax_amounts", invoice.getTotalTaxAmounts().toString());
+            }
+
+        } catch (StripeException e) {
+            String errorMessage = "Error while fetching billing engine usage data for : " + apiName;
+            APIUtil.handleException(errorMessage, e);
+        }
+        return billingEngineUsageData;
     }
 
     @Override
@@ -297,7 +402,7 @@ public class MonetizationImpl implements Monetization {
         String apiName = api.getId().getApiName();
         String apiVersion = api.getId().getVersion();
         String apiProvider = api.getId().getProviderName();
-        String apiId = apiMgtDAO.getApiId(apiName, apiVersion, apiProvider);
+        int apiId = apiMgtDAO.getAPIID(api.getId(), null);
         String billingProductIdForApi = getBillingProductIdForApi(apiId);
         //create billing engine product if it does not exist
         if (StringUtils.isEmpty(billingProductIdForApi)) {
@@ -347,7 +452,7 @@ public class MonetizationImpl implements Monetization {
      * @return  billing product ID for the given API
      * @throws APIManagementException if failed to get billing product ID for the given API
      */
-    private String getBillingProductIdForApi(String apiId) throws APIManagementException {
+    private String getBillingProductIdForApi(int apiId) throws APIManagementException {
 
         String billingProductId = StringUtils.EMPTY;
         billingProductId = apiMgtDAO.getBillingEngineProductId(apiId);
@@ -362,7 +467,7 @@ public class MonetizationImpl implements Monetization {
      * @return billing plan ID for a given tier
      * @throws APIManagementException if failed to get billing plan ID for the given tier
      */
-    private String getBillingPlanIdOfTier(String apiId, String tierName) throws APIManagementException {
+    private String getBillingPlanIdOfTier(int apiId, String tierName) throws APIManagementException {
 
         String billingPlanId = StringUtils.EMPTY;
         billingPlanId = apiMgtDAO.getBillingEnginePlanIdForTier(apiId, tierName);
@@ -435,7 +540,11 @@ public class MonetizationImpl implements Monetization {
         String apiName = api.getId().getApiName();
         String apiVersion = api.getId().getVersion();
         String apiProvider = api.getId().getProviderName();
-        String apiId = apiMgtDAO.getApiId(apiName, apiVersion, apiProvider);
+
+        //String apiId = apiMgtDAO.getApiId(apiName, apiVersion, apiProvider);
+
+        int apiId = apiMgtDAO.getAPIID(api.getId(), null);
+
         String billingProductIdForApi = getBillingProductIdForApi(apiId);
         Map<String, String> tierToBillingEnginePlanMap = apiMgtDAO.getTierToBillingEnginePlanMapping
                 (apiId, billingProductIdForApi);
