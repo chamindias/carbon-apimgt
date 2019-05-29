@@ -665,6 +665,10 @@
         <DCREndPointPassword>${admin.password}</DCREndPointPassword>
     </WorkflowConfigurations>
 
+    <Monetization>
+        <!--<MonetizationImpl>org.wso2.carbon.apimgt.impl.monetization.MonetizationImpl</MonetizationImpl>-->
+    </Monetization>
+
     <SwaggerCodegen>
         <ClientGeneration>
             <GroupId>org.wso2</GroupId>
