@@ -6,7 +6,7 @@
 *  in compliance with the License.
 *  You may obtain a copy of the License at
 *
-*    http://www.apache.org/licenses/LICENSE-2.0
+*  http://www.apache.org/licenses/LICENSE-2.0
 *
 * Unless required by applicable law or agreed to in writing,
 * software distributed under the License is distributed on an
@@ -255,7 +255,6 @@ public class MonetizationImpl implements Monetization {
         }
         return true;
     }
-
 
     @Override
     public Map<String, String> getMonetizedPoliciesToPlanMapping(API api) throws APIManagementException {
@@ -521,7 +520,6 @@ public class MonetizationImpl implements Monetization {
         //read tenant conf and get platform account key
         String platformAccountKey = getStripePlatformAccountKey(tenantDomain);
         String connectedAccountKey = StringUtils.EMPTY;
-
         //get api publisher's stripe key (i.e - connected account key) from monetization properties in request payload
         if (MapUtils.isNotEmpty(monetizationProperties) &&
                 monetizationProperties.containsKey(APIConstants.BILLING_ENGINE_CONNECTED_ACCOUNT_KEY)) {
@@ -537,13 +535,7 @@ public class MonetizationImpl implements Monetization {
             APIUtil.handleException(errorMessage);
         }
         String apiName = api.getId().getApiName();
-        String apiVersion = api.getId().getVersion();
-        String apiProvider = api.getId().getProviderName();
-
-        //String apiId = apiMgtDAO.getApiId(apiName, apiVersion, apiProvider);
-
         int apiId = apiMgtDAO.getAPIID(api.getId(), null);
-
         String billingProductIdForApi = getBillingProductIdForApi(apiId);
         Map<String, String> tierToBillingEnginePlanMap = apiMgtDAO.getTierToBillingEnginePlanMapping
                 (apiId, billingProductIdForApi);

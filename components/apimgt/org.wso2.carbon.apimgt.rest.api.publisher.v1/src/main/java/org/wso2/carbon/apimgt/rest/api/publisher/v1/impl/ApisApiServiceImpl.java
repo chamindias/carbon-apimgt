@@ -981,7 +981,6 @@ public class ApisApiServiceImpl implements ApisApiService {
             String tenantDomain = RestApiUtil.getLoggedInUserTenantDomain();
             APIIdentifier apiIdentifier = APIMappingUtil.getAPIIdentifierFromUUID(apiId, tenantDomain);
             API api = apiProvider.getAPI(apiIdentifier);
-
             if (!APIConstants.PUBLISHED.equalsIgnoreCase(api.getStatus())) {
                 String errorMessage = "API " + apiIdentifier.getApiName() +
                         " should be in published state to configure monetization.";
@@ -993,7 +992,6 @@ public class ApisApiServiceImpl implements ApisApiService {
             //clear the existing properties related to monetization
             api.getMonetizationProperties().clear();
             Map<String, String> monetizationProperties = body.getProperties();
-
             if (MapUtils.isNotEmpty(monetizationProperties)) {
                 String errorMessage = RestApiPublisherUtils.validateMonetizationProperties(monetizationProperties);
                 if (!errorMessage.isEmpty()) {
@@ -1007,7 +1005,6 @@ public class ApisApiServiceImpl implements ApisApiService {
             Monetization monetizationImplementation = apiProvider.getMonetizationImplClass();
             HashMap monetizationDataMap = new Gson().fromJson(api.getMonetizationProperties().toString(), HashMap.class);
             boolean isMonetizationStateChangeSuccessful;
-
             if (MapUtils.isEmpty(monetizationDataMap)) {
                 String errorMessage = "Monetization data map is empty for API ID " + apiId;
                 RestApiUtil.handleInternalServerError(errorMessage, log);

@@ -1116,7 +1116,6 @@ public class ApiMgtDAO {
             if (resultSet.next()) {
                 APIIdentifier apiIdentifier = new APIIdentifier(APIUtil.replaceEmailDomain(resultSet.getString
                         ("API_PROVIDER")), resultSet.getString("API_NAME"), resultSet.getString("API_VERSION"));
-
                 int applicationId = resultSet.getInt("APPLICATION_ID");
                 Application application = getApplicationById(applicationId);
                 subscribedAPI = new SubscribedAPI(application.getSubscriber(), apiIdentifier);
@@ -9650,13 +9649,13 @@ public class ApiMgtDAO {
     }
 
     /**
+     * Get billing plan ID for a given tier
      *
-     *
-     * @param tierUUID
-     * @return
-     * @throws APIManagementException
+     * @param tierUUID tier UUID
+     * @return billing plan ID for a given tier
+     * @throws APIManagementException if failed to get billing plan ID for a given tier
      */
-    public  String getBillingPlanId(String tierUUID) throws APIManagementException {
+    public String getBillingPlanId(String tierUUID) throws APIManagementException {
 
         Connection conn = null;
         PreparedStatement ps = null;
@@ -9914,7 +9913,6 @@ public class ApiMgtDAO {
             }
             connection.commit();
         } catch (SQLException e) {
-
             handleException("Failed to get billing engine plan ID list of API : " + apiId, e);
         } finally {
             APIMgtDBUtil.closeAllConnections(statement, connection, null);
