@@ -9633,6 +9633,7 @@ public class ApiMgtDAO {
         Map<String,String >  planData = new HashMap<String,String >();
         try {
             conn = APIMgtDBUtil.getConnection();
+            conn.setAutoCommit(false);
             ps = conn.prepareStatement(SQLConstants.GET_BILLING_PLAN_DATA);
             ps.setString(1, getSubscriptionPolicy(policy.getPolicyName(),policy.getTenantId()).getUUID());
             rs = ps.executeQuery();
@@ -9663,6 +9664,7 @@ public class ApiMgtDAO {
         String planId = null;
         try {
             conn = APIMgtDBUtil.getConnection();
+            conn.setAutoCommit(false);
             ps = conn.prepareStatement(SQLConstants.GET_BILLING_PLAN_ID);
             ps.setString(1, tierUUID);
             rs = ps.executeQuery();
@@ -9745,6 +9747,7 @@ public class ApiMgtDAO {
                     preparedStatement.addBatch();
                 }
                 preparedStatement.executeBatch();
+                connection.commit();
             }
         } catch (SQLException e) {
             try {
@@ -9776,6 +9779,7 @@ public class ApiMgtDAO {
         PreparedStatement statement = null;
         try {
             connection = APIMgtDBUtil.getConnection();
+            connection.setAutoCommit(false);
             statement = connection.prepareStatement(SQLConstants.GET_BILLING_PLANS_BY_PRODUCT);
             statement.setInt(1, apiID);
             statement.setString(2, stripeProductId);
@@ -9809,6 +9813,7 @@ public class ApiMgtDAO {
         String billingEnginePlanId = "";
         try {
             connection = APIMgtDBUtil.getConnection();
+            connection.setAutoCommit(false);
             statement = connection.prepareStatement(SQLConstants.GET_BILLING_PLAN_FOR_TIER);
             statement.setInt(1, apiID);
             statement.setString(2, tierName);
@@ -9826,48 +9831,36 @@ public class ApiMgtDAO {
     }
 
     /**
-     * This method is used to fetch the API ID in AM_API table
+     * Get Billing Engine Subscription ID
      *
-     * @param apiName     API name
-     * @param apiVersion  API version
-     * @param apiProvider API provider
-     * @return API ID in AM_API table
+     * @param apiId API ID
+     * @param applicationId Application ID
+     * @return Billing Engine Subscription ID
+     * @throws APIManagementException If Failed To Get Billing Engine Subscription ID
      */
-    public String getApiId(String apiName, String apiVersion, String apiProvider) throws APIManagementException {
+    public String getBillingEngineSubscriptionId(int apiId, int applicationId) throws APIManagementException {
 
-        String apiId = null;
+        String billingEngineSubscriptionId = null;
         Connection connection = null;
         PreparedStatement statement = null;
         try {
             connection = APIMgtDBUtil.getConnection();
-            statement = connection.prepareStatement(SQLConstants.GET_API_ID_BY_IDENTIFIER);
-            statement.setString(1, apiName);
-            statement.setString(2, apiVersion);
-            statement.setString(3, apiProvider);
+            connection.setAutoCommit(false);
+            statement = connection.prepareStatement(SQLConstants.GET_BILLING_ENGINE_SUBSCRIPTION_ID);
+            statement.setInt(1, applicationId);
+            statement.setInt(2, apiId);
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
-                apiId = rs.getString("API_ID");
+                billingEngineSubscriptionId = rs.getString("SUBSCRIPTION_ID");
             }
             connection.commit();
         } catch (SQLException e) {
-            handleException("Failed to get API ID of API : " + apiName, e);
+            handleException("Failed to get billing engine subscription ID of API : " + apiId +
+                    " and subscription ID : " + applicationId, e);
         } finally {
             APIMgtDBUtil.closeAllConnections(statement, connection, null);
         }
-        return apiId;
-    }
-
-    /**
-     * Get Billing Engine Subscription ID
-     *
-     * @param apiId API ID
-     * @param subscriptionId Subscription ID
-     * @return Billing Engine Subscription ID
-     * @throws APIManagementException If Failed To Get Billing Engine Subscription ID
-     */
-    public String getBillingEngineSubscriptionId(int apiId, int subscriptionId) throws APIManagementException {
-        //todo
-        return "sub_F8xuvHVErFFZOT";
+        return billingEngineSubscriptionId;
     }
 
     /**
@@ -9883,6 +9876,7 @@ public class ApiMgtDAO {
         PreparedStatement statement = null;
         try {
             connection = APIMgtDBUtil.getConnection();
+            connection.setAutoCommit(false);
             statement = connection.prepareStatement(SQLConstants.GET_BILLING_ENGINE_PRODUCT_BY_API);
             statement.setInt(1, apiId);
             ResultSet rs = statement.executeQuery();
@@ -9911,6 +9905,7 @@ public class ApiMgtDAO {
         PreparedStatement statement = null;
         try {
             connection = APIMgtDBUtil.getConnection();
+            connection.setAutoCommit(false);
             statement = connection.prepareStatement(SQLConstants.GET_BILLING_ENGINE_PLANS_BY_API);
             statement.setInt(1, Integer.parseInt(apiId));
             ResultSet rs = statement.executeQuery();

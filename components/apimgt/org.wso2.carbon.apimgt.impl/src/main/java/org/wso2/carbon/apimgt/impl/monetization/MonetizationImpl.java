@@ -308,8 +308,8 @@ public class MonetizationImpl implements Monetization {
                 //create request options to link with the connected account
                 RequestOptions requestOptions = RequestOptions.builder().setStripeAccount(connectedAccountKey).build();
                 int apiId = apiMgtDAO.getAPIID(apiIdentifier, null);
-                int subscriptionId = subscribedAPI.getSubscriptionId();
-                String billingPlanSubscriptionId = apiMgtDAO.getBillingEngineSubscriptionId(apiId, subscriptionId);
+                int applicationId = subscribedAPI.getApplication().getId();
+                String billingPlanSubscriptionId = apiMgtDAO.getBillingEngineSubscriptionId(apiId, applicationId);
                 Subscription billingEngineSubscription = Subscription.retrieve(billingPlanSubscriptionId, requestOptions);
                 if (billingEngineSubscription == null) {
                     String errorMessage = "No billing engine subscription was found for API : " + apiName;
@@ -370,7 +370,6 @@ public class MonetizationImpl implements Monetization {
                 billingEngineUsageData.put("total", invoice.getTotal().toString());
                 billingEngineUsageData.put("total_tax_amounts", invoice.getTotalTaxAmounts().toString());
             }
-
         } catch (StripeException e) {
             String errorMessage = "Error while fetching billing engine usage data for : " + apiName;
             APIUtil.handleException(errorMessage, e);
