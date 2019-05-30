@@ -71,7 +71,7 @@ public class SubscriptionsApiServiceImpl implements SubscriptionsApiService {
                     apiProvider);
             if (MapUtils.isEmpty(billingEngineUsageData)) {
                 String errorMessage = "Billing engine usage data was not found for subscription ID : " + subscriptionId;
-                RestApiUtil.handleInternalServerError(errorMessage, log);
+                RestApiUtil.handleBadRequest(errorMessage, log);
             }
             APIMonetizationUsageDTO apiMonetizationUsageDTO = new APIMonetizationUsageDTO();
             apiMonetizationUsageDTO.setProperties(billingEngineUsageData);
