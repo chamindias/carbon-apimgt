@@ -264,13 +264,11 @@ public class MonetizationImpl implements Monetization {
         //get billing engine product ID for that API
         String billingProductIdForApi = getBillingProductIdForApi(apiId);
         if (StringUtils.isEmpty(billingProductIdForApi)) {
-            String errorMessage = "Failed to billing engine product ID for  : " + apiName;
-            APIUtil.handleException(errorMessage);
+            log.info("No product was found in billing engine for  : " + apiName);
+            return new HashMap<String, String>();
         }
         //get tier to billing engine plan mapping
-        Map<String, String> tierToBillingEnginePlanMap = apiMgtDAO.getTierToBillingEnginePlanMapping
-                (apiId, billingProductIdForApi);
-        return tierToBillingEnginePlanMap;
+        return apiMgtDAO.getTierToBillingEnginePlanMapping(apiId, billingProductIdForApi);
     }
 
     @Override
