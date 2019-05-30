@@ -437,6 +437,8 @@ public class MonetizationImpl implements Monetization {
         //save data in the database - only if there is a stripe product and newly created plans
         if (StringUtils.isNotBlank(billingProductIdForApi) && MapUtils.isNotEmpty(tierPlanMap)) {
             apiMgtDAO.addMonetizationData(apiId, billingProductIdForApi, tierPlanMap);
+        } else {
+            return false;
         }
         return true;
     }
@@ -535,6 +537,10 @@ public class MonetizationImpl implements Monetization {
         String apiName = api.getId().getApiName();
         int apiId = apiMgtDAO.getAPIID(api.getId(), null);
         String billingProductIdForApi = getBillingProductIdForApi(apiId);
+        //no product in the billing engine, so return
+        if (StringUtils.isBlank(billingProductIdForApi)) {
+            return false;
+        }
         Map<String, String> tierToBillingEnginePlanMap = apiMgtDAO.getTierToBillingEnginePlanMapping
                 (apiId, billingProductIdForApi);
         Stripe.apiKey = platformAccountKey;

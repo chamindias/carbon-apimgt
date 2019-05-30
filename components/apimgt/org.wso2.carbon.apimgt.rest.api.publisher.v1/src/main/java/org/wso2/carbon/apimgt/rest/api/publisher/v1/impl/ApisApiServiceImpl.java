@@ -1019,9 +1019,12 @@ public class ApisApiServiceImpl implements ApisApiService {
             if (isMonetizationStateChangeSuccessful) {
                 APIMonetizationInfoDTO monetizationInfoDTO = APIMappingUtil.getMonetizationInfoDTO(apiIdentifier);
                 return Response.ok().entity(monetizationInfoDTO).build();
+            } else {
+                String errorMessage = "Unable to change monetization status for API : " + apiId;
+                RestApiUtil.handleBadRequest(errorMessage, log);
             }
         } catch (APIManagementException e) {
-            String errorMessage = "Error while configuring monetization for API ID " + apiId;
+            String errorMessage = "Error while configuring monetization for API ID : " + apiId;
             RestApiUtil.handleInternalServerError(errorMessage, e, log);
         }
         return Response.serverError().build();
